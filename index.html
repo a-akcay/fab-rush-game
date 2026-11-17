@@ -78,6 +78,16 @@ input[type=number],input[type=text],input[type=password],select{font:inherit;pad
 input[type=number]{width:96px}
 .msg{min-height:20px;font-size:13.5px;margin-top:6px}
 .msg.err{color:var(--bad)}
+.explink{font:inherit;font-weight:800;color:var(--fab);background:none;border:0;padding:0;text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
+.explink:hover,.explink:focus-visible{text-decoration-style:solid}
+ol.calc{padding-left:20px;margin:6px 0}
+ol.calc li{margin:8px 0;line-height:1.55}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 18px}
+.pgrid input[type=number]{width:130px}
+.pf .small{margin-top:3px}
+.sym{font-weight:400;color:var(--ink2);font-style:italic;margin-left:4px}
+ul.perr{margin:4px 0 0;padding-left:18px}
+ul.perr li{margin:2px 0}
 .stmt{width:100%;border-collapse:collapse}
 .stmt td,.stmt th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 .stmt td:last-child,.stmt th:last-child.r{text-align:right}
@@ -256,7 +266,56 @@ const FIREBASE_CONFIG = {
   appId: "1:1082122720020:web:5ea648454b30e6e91c2801"
 };
 //#LOGIC-START
-const C=280,P=240,W=80,COST=40,B=20,MU=140;
+const DEF_PARAMS={C:280,P:240,W:80,COST:40,B:20,MU:140,SL:-60,SH:60,PH:0.5,E:80};
+let C=280,P=240,W=80,COST=40,B=20,MU=140,SL=-60,SH=60,PH=0.5,E=80,PARAMS_KEY='';
+let BASE_STEPS,EXT_STEPS,GUIDE,DEBRIEF_Q,BENCH={},BX={},WAF=null,WAF_C=null;
+function curParams(){return {C,P,W,COST,B,MU,SL,SH,PH,E};}
+function normParams(pr){const q=Object.assign({},DEF_PARAMS);if(pr&&typeof pr==='object')for(const k in DEF_PARAMS){const v=Number(pr[k]);if(pr[k]!==''&&pr[k]!=null&&isFinite(v))q[k]=v;}return q;}
+// Applies the session's economic parameters and rebuilds everything that depends on them.
+function applyParams(pr){const q=normParams(pr),key=JSON.stringify(q);if(key===PARAMS_KEY)return;PARAMS_KEY=key;
+  C=q.C;P=q.P;W=q.W;COST=q.COST;B=q.B;MU=q.MU;SL=q.SL;SH=q.SH;PH=q.PH;E=q.E;
+  if(WAF_C!==C){WAF=buildWAF();WAF_C=C;}
+  BENCH=computeBench();buildTexts();}
+function validateParams(pr){const q=pr||{},e=[],w=[];
+  const num=k=>q[k]!==''&&q[k]!=null&&isFinite(Number(q[k])),v=k=>Number(q[k]);
+  const names={C:'Capacity C',P:'Fabless revenue p',W:'Wholesale price w',COST:'Production cost c',B:'External contribution b',MU:'Baseline demand μ',SL:'Low signal',SH:'High signal',PH:'Probability of the high signal',E:'Error range e'};
+  for(const k in names)if(!num(k))e.push(names[k]+' needs a number.');
+  if(e.length)return {err:e,warn:w};
+  for(const k of ['C','MU','SL','SH','E'])if(!Number.isInteger(v(k)))e.push(names[k]+' must be a whole number of wafers.');
+  if(v('C')<10||v('C')>2000)e.push('Capacity C must be between 10 and 2,000 wafer starts.');
+  for(const k of ['P','W','COST','B'])if(v(k)<0)e.push(names[k]+' cannot be negative.');
+  if(v('W')<=v('COST'))e.push('Wholesale price w must be above production cost c, or the foundry loses money on every fabless wafer.');
+  if(v('P')<=v('W'))e.push('Fabless revenue p must be above wholesale price w, or the fabless loses money on every sale.');
+  if(v('B')>=v('W')-v('COST'))e.push('External contribution b must be below the foundry margin w − c ('+fmt(v('W')-v('COST'))+'), or the foundry never has a reason to protect capacity.');
+  if(v('SL')>=v('SH'))e.push('The low signal must be smaller than the high signal.');
+  if(!(v('PH')>0&&v('PH')<1))e.push('Probability of the high signal must be between 0 and 1 (not 0 or 1).');
+  if(v('E')<1)e.push('Error range e must be at least 1.');
+  if(!e.length&&v('MU')+v('SL')-v('E')<0)e.push('Lowest possible demand μ + low signal − e is '+fmt(v('MU')+v('SL')-v('E'))+'. It must be 0 or more.');
+  if(!e.length&&v('MU')+v('SH')+v('E')>v('C'))w.push('Highest possible demand ('+fmt(v('MU')+v('SH')+v('E'))+') is above capacity C ('+fmt(v('C'))+'), so some demand can never be served.');
+  if(!e.length&&v('MU')+v('SL')+v('E')<v('MU')+v('SH')-v('E'))w.push('The two demand ranges do not overlap, so a request could reveal the signal exactly.');
+  return {err:e,warn:w};}
+function withParams(pr,fn){const old=curParams();applyParams(pr);try{return fn();}finally{applyParams(old);}}
+const isLow=S=>S<(SL+SH)/2;
+function hiD(S){return MU+S+E;}
+function quant(S,q){return lo(S)+q*2*E;}
+function rngTxt(S,sep){return fmt(lo(S))+(sep||'–')+fmt(hiD(S));}
+function sigTxt(S){return (isLow(S)?'low':'high')+' ('+sgn(S)+')';}
+function probTxt(){return PH===0.5?'equally likely':'high with probability '+fmt(PH);}
+function ordinal(n){const m=n%100;if(m>=11&&m<=13)return n+'th';return n+({1:'st',2:'nd',3:'rd'}[n%10]||'th');}
+function pctName(q){return Math.abs(q-.5)<1e-9?'median':ordinal(Math.round(q*100))+' percentile';}
+function priorCdf(K){const c=S=>Math.max(0,Math.min(1,(K-lo(S))/(2*E)));return (1-PH)*c(SL)+PH*c(SH);}
+function computeBench(){
+  const qd=Math.max(0,Math.min(1,1-B/(W-COST))),qe=Math.max(0,Math.min(1,1-B/(P-COST)));
+  const cap=k=>Math.max(0,Math.min(C,Math.round(k)));
+  let a=Math.min(lo(SL),lo(SH)),b=Math.max(hiD(SL),hiD(SH));for(let i=0;i<80;i++){const m=(a+b)/2;if(priorCdf(m)<qd)a=m;else b=m;}
+  const kPriv=cap((a+b)/2),kPub={L:cap(quant(SL,qd)),H:cap(quant(SH,qd))},kEff={L:cap(quant(SL,qe)),H:cap(quant(SH,qe))};
+  const ev=(role,K,S)=>expProfit(role,K,0,0,S),avg=fn=>(1-PH)*fn(SL,'L')+PH*fn(SH,'H');
+  const trip=kf=>{const f=avg((S,t)=>ev('f',kf(t),S)),d=avg((S,t)=>ev('d',kf(t),S));return [f,d,f+d];};
+  const ind0=trip(()=>kPriv),ind1=trip(t=>kPub[t]),eff=trip(t=>kEff[t]);
+  const fee={};for(const t of ['L','H']){const S=t==='L'?SL:SH;fee[t]=[ev('d',kPub[t],S)-ev('d',kEff[t],S),ev('f',kEff[t],S)-ev('f',kPub[t],S)];}
+  BX={qd,qe,kPriv,kPub,kEff,fee,ind0,ind1,eff};
+  return {private:{ind:ind0},public:{ind:ind1,eff},fee:{eff,ind:ind1},min:{ind:ind1,eff}};
+}
 const VERS={
   private:{name:'Base game',sub:'Private demand signal',pub:false,ext:null},
   public:{name:'Base game',sub:'Public demand signal',pub:true,ext:null},
@@ -264,50 +323,53 @@ const VERS={
   min:{name:'Minimum purchase',sub:'Public demand signal',pub:true,ext:'min'}
 };
 const VORDER=['private','public','fee','min'];
-const BASE_STEPS=['The fabless sees the signal and requests capacity R (0 to 280).','The foundry protects a guarantee K0 between 0 and R. The rest of the 280 goes to external customers.','Demand is revealed and both profits are settled with K = K0.'];
-const EXT_STEPS=x=>['The fabless sees the signal and requests capacity R.','The foundry protects K0 ≤ R.',
+function feeRangeTxt(){const r=t=>fmt(Math.max(0,BX.fee[t][0]))+' ≤ F ≤ '+fmt(BX.fee[t][1]);const a=r('L'),b=r('H');return a===b?a:'low signal '+a+'; high signal '+b;}
+function buildTexts(){
+BASE_STEPS=['The fabless sees the signal and requests capacity R (0 to '+fmt(C)+').','The foundry protects a guarantee K0 between 0 and R. The rest of the '+fmt(C)+' goes to external customers.','Demand is revealed and both profits are settled with K = K0.'];
+EXT_STEPS=x=>['The fabless sees the signal and requests capacity R.','The foundry protects K0 ≤ R.',
   x==='fee'?'The fabless makes an opening offer: “I’ll pay a reservation fee F if you raise my guarantee from K0 to K1.” Or it keeps the original plan.':'The fabless makes an opening offer: “I’ll buy at least L wafers if you raise my guarantee from K0 to K1.” Or it keeps the original plan.',
   'The foundry accepts, rejects, or makes a counter-offer with its own K1 and '+(x==='fee'?'fee':'minimum')+'. The fabless can answer the same way. Offers alternate up to the limit your instructor sets (normally 3 in total), and the final offer can only be accepted or rejected.',
   x==='fee'?'If an offer is accepted, K = K1 and that fee F is paid. If nobody agrees, the original plan stands (K = K0, no fee).':'If an offer is accepted, K = K1 with that minimum purchase L. If nobody agrees, the original plan stands (K = K0, no commitment).',
   'Demand is revealed and both profits are settled.'];
-const GUIDE={
+GUIDE={
   private:{title:'Base game with a private signal',short:'Only the fabless sees the demand signal.',
-    see:{f:'You see the signal (low −60 or high +60) before you request.',d:'You do not see the signal. The only clue you get is the fabless’s request R.'},
-    steps:BASE_STEPS,pay:'The fabless buys min(D, K) wafers at 80 each. Nothing else is paid.',
+    see:{f:'You see the signal (low '+sgn(SL)+' or high '+sgn(SH)+') before you request.',d:'You do not see the signal. The only clue you get is the fabless’s request R.'},
+    steps:BASE_STEPS,pay:'The fabless buys min(D, K) wafers at '+fmt(W)+' each. Nothing else is paid.',
     newv:'This is the starting point of the game.',
     lesson:'Requesting is free, so a large request might mean strong demand or just wishful asking. The foundry has to decide how much to trust it.',
     think:{f:'How large a request helps you, and how will the foundry read it?',d:'What does this request tell you about the signal, and can you trust it?'}},
   public:{title:'Base game with a public signal',short:'Both companies see the same signal.',
     see:{f:'You see the signal, and the foundry now sees it too.',d:'You now see the same signal as the fabless, verified by the instructor.'},
-    steps:BASE_STEPS,pay:'The fabless buys min(D, K) wafers at 80 each. Nothing else is paid.',
+    steps:BASE_STEPS,pay:'The fabless buys min(D, K) wafers at '+fmt(W)+' each. Nothing else is paid.',
     newv:'Only one thing changes from the private game: the foundry sees the actual signal. Prices, capacity and rules are identical.',
     lesson:'Verified information lets the foundry match capacity to the forecast instead of guessing. Compare your results with the private rounds.',
     think:{f:'Does your request still matter now that the foundry knows the signal?',d:'Given the signal, how much capacity is worth protecting?'}},
   fee:{title:'Reservation-fee contract',short:'The fabless can pay a fixed fee for a larger guarantee.',
     see:{f:'Both companies see the signal, as in the public base game.',d:'Both companies see the signal, as in the public base game.'},
-    steps:EXT_STEPS('fee'),pay:'The fabless buys min(D, K) wafers at 80 each, plus the fee F if the deal was accepted. The fee is paid even if the extra capacity goes unused.',
+    steps:EXT_STEPS('fee'),pay:'The fabless buys min(D, K) wafers at '+fmt(W)+' each, plus the fee F if the deal was accepted. The fee is paid even if the extra capacity goes unused.',
     newv:'Adds a negotiation after the base allocation: the fabless makes an opening offer, and the two companies can trade counter-offers until one accepts or rejects. Everything else matches the public base game.',
     lesson:'The fee compensates the foundry for the external business it gives up. It moves money between the companies but does not change how many wafers are made or sold, so it never changes combined profit.',
     think:{f:'What is the extra capacity worth to you, and what is the least the foundry will accept?',d:'Does the fee cover the external contribution you give up on the extra wafers?'}},
   min:{title:'Minimum-purchase contract',short:'The fabless can promise to buy at least L wafers for a larger guarantee.',
     see:{f:'Both companies see the signal, as in the public base game.',d:'Both companies see the signal, as in the public base game.'},
-    steps:EXT_STEPS('min'),pay:'The fabless buys max(L, min(D, K)) wafers at 80 each. If demand comes in below L, it still pays for L wafers, and the unsold ones are worth nothing.',
+    steps:EXT_STEPS('min'),pay:'The fabless buys max(L, min(D, K)) wafers at '+fmt(W)+' each. If demand comes in below L, it still pays for L wafers, and the unsold ones are worth nothing.',
     newv:'Same structure as the reservation-fee version, but the fabless offers a purchase commitment instead of cash. There is no fee in this version.',
     lesson:'A commitment protects the foundry when demand is weak. But wafers bought above demand cost production with no sale, so a commitment that binds shrinks combined profit.',
     think:{f:'How large a commitment can you afford if demand comes in low?',d:'How likely is demand to fall below L, and is that protection worth the external business you give up?'}}
 };
-const DEBRIEF_Q={
+DEBRIEF_Q={
   practice:['Does every team understand what it decides and when?','Which numbers on the dashboard does each company see, and which are hidden?'],
-  private:['Foundry teams: what did you infer from the request R? Did you trust it?','Fabless teams: how did you choose your request? Did you ask for more than you expected to need?','Benchmark: a foundry that ignores R and uses the prior median protects min(R, 140).'],
-  public:['How did seeing the signal change foundry allocations (benchmark: 80 if low, 200 if high)?','Sharing the signal raises expected combined profit from 24,550 to 26,800. Who gained?','An efficient plan (144 if low, 264 if high) would add 2,560 more, but costs the foundry 512. What could the fabless offer to make it worthwhile?'],
-  fee:['How did counter-offers change the fee teams finally agreed on? Who conceded more?','Why would the foundry reject the capacity increase without a fee?','Which fees make both companies better off? (Benchmark: 512 ≤ F ≤ 3,072 for the efficient increase.)','Why does changing the fee leave combined profit unchanged?','How did teams divide the additional expected profit?'],
-  min:['How did counter-offers change the minimum purchase teams agreed on?','Why would the foundry reject a minimum of 0 (or 120 under the high signal) despite a positive combined gain?','Why are mid-sized commitments attractive to both companies?','Why does a very large commitment hurt the fabless?','Why does combined profit fall as the minimum purchase rises while capacity stays fixed?']
+  private:['Foundry teams: what did you infer from the request R? Did you trust it?','Fabless teams: how did you choose your request? Did you ask for more than you expected to need?','Benchmark: a foundry that ignores R and uses the prior '+pctName(BX.qd)+' protects min(R, '+fmt(BX.kPriv)+').'],
+  public:['How did seeing the signal change foundry allocations (benchmark: '+fmt(BX.kPub.L)+' if low, '+fmt(BX.kPub.H)+' if high)?','Sharing the signal '+(BX.ind1[2]>=BX.ind0[2]?'raises':'changes')+' expected combined profit from '+fmt(BX.ind0[2])+' to '+fmt(BX.ind1[2])+'. Who gained?','An efficient plan ('+fmt(BX.kEff.L)+' if low, '+fmt(BX.kEff.H)+' if high) would add '+fmt(BX.eff[2]-BX.ind1[2])+' more'+(BX.ind1[1]-BX.eff[1]>0?', but costs the foundry '+fmt(BX.ind1[1]-BX.eff[1])+'. What could the fabless offer to make it worthwhile?':'. Why might the foundry still hesitate?')+''],
+  fee:['How did counter-offers change the fee teams finally agreed on? Who conceded more?','Why would the foundry reject the capacity increase without a fee?','Which fees make both companies better off? (Benchmark: '+feeRangeTxt()+' for the efficient increase.)','Why does changing the fee leave combined profit unchanged?','How did teams divide the additional expected profit?'],
+  min:['How did counter-offers change the minimum purchase teams agreed on?','Why would the foundry reject a minimum of '+fmt(lo(SL))+' (or '+fmt(lo(SH))+' under the high signal) despite a positive combined gain?','Why are mid-sized commitments attractive to both companies?','Why does a very large commitment hurt the fabless?','Why does combined profit fall as the minimum purchase rises while capacity stays fixed?']
 };
+}
 function buildPlan(n,extra){const p=[{ver:'private',r:0,practice:true}];for(const v of VORDER)for(let r=1;r<=n;r++)p.push({ver:v,r});
   const list=Array.isArray(extra)?extra:[];const cnt={};for(const v of list){if(!VERS[v])continue;cnt[v]=(cnt[v]||0)+1;p.push({ver:v,r:n+cnt[v],extra:true});}return p;}
-const lo=S=>S<0?0:120;
-function mS(K,S){const l=lo(S),u=l+160;if(K<=l)return K;if(K>=u)return l+80;return K-(K-l)**2/320;}
-function eS(L,S){const l=lo(S),u=l+160;if(L<=l)return 0;if(L>=u)return L-(l+80);return (L-l)**2/320;}
+function lo(S){return MU+S-E;}
+function mS(K,S){const l=lo(S),w=2*E,u=l+w;if(K<=l)return K;if(K>=u)return l+E;return K-(K-l)**2/(2*w);}
+function eS(L,S){const l=lo(S),w=2*E,u=l+w;if(L<=l)return 0;if(L>=u)return L-(l+E);return (L-l)**2/(2*w);}
 function econ(K,F,L,D){
   const sold=Math.min(D,K),purchased=L>0?Math.max(L,sold):sold;
   return {sold,purchased,unmet:D-sold,excess:purchased-sold,unused:K-purchased,
@@ -316,7 +378,7 @@ function econ(K,F,L,D){
 function expProfit(role,K,F,L,S){
   const f=s=>{const m=mS(K,s),e=L>0?eS(L,s):0;
     return role==='f'?P*m-W*(m+e)-F:(W-COST)*(m+e)+B*(C-K)+F;};
-  return S===null||S===undefined?(f(-60)+f(60))/2:f(S);
+  return S===null||S===undefined?(1-PH)*f(SL)+PH*f(SH):f(S);
 }
 // Negotiation: offers alternate fabless -> foundry -> fabless. The final decision is stored in mv.resp.
 function offersOf(mv){const o=[];if(mv&&mv.prop&&!mv.prop.skip){o.push(Object.assign({},mv.prop,{by:'f'}));if(mv.o2){o.push(Object.assign({},mv.o2,{by:'d'}));if(mv.o3)o.push(Object.assign({},mv.o3,{by:'f'}));}}return o;}
@@ -347,7 +409,7 @@ function hashStr(str){let h1=0xdeadbeef^str.length,h2=0x41c6ce57^str.length;
 function rngFrom(key){let a=hashStr(String(key));return function(){a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296;};}
 function newSeed(){return String(100000+Math.floor(Math.random()*900000));}
 function scenKey(step,seed,repeat){return seed+'|'+(step.practice?'practice':(repeat?'round-'+step.r:step.ver+'-'+step.r));}
-function genScen(plan,seed,repeat){return plan.map(s=>{const r=rngFrom(scenKey(s,seed,repeat));return {S:r()<.5?-60:60,eps:Math.floor(r()*161)-80};});}
+function genScen(plan,seed,repeat){return plan.map(s=>{const r=rngFrom(scenKey(s,seed,repeat));return {S:r()<1-PH?SL:SH,eps:Math.floor(r()*(2*E+1))-E};});}
 function checkReq(R){return Number.isInteger(R)&&R>=0&&R<=C?'':'Enter a whole number from 0 to '+C+'.';}
 function checkAlloc(K0,R){return Number.isInteger(K0)&&K0>=0&&K0<=R?'':'Allocation must be a whole number from 0 to the request ('+R+').';}
 function checkProp(K0,K1,X,ext){
@@ -437,6 +499,7 @@ let raf=0,autoFired='';
 
 function reindex(){
   MV={};RV={};
+  applyParams(G&&G.params);
   if(!G)return;
   const att=G.att||{};
   for(const m of movesRaw){if(m.sid!==G.sid)continue;if((m.att||0)!==(att[m.pos]||0))continue;((MV[m.pos]=MV[m.pos]||{})[m.pair]=MV[m.pos][m.pair]||{})[m.kind]=m;}
@@ -450,7 +513,7 @@ function seatOf(u){if(!isInst&&u===uid){if(!mySeat)return null;const p=pairById(
 const curStep=()=>G&&G.pos>=0?plan[G.pos]:null;
 const stepLabel=s=>s?(s.practice?'Practice round':'Round '+s.r+' of '+plan.filter(x=>x.ver===s.ver&&!x.practice).length):'';
 function scenAt(pos){const s=plan[pos];if(!s||!scen||scen.sid!==(G&&G.sid))return null;
-  if(scen.seed!=null){const r=rngFrom(scenKey(s,scen.seed,scen.repeat));return {S:r()<.5?-60:60,eps:Math.floor(r()*161)-80};}
+  if(scen.seed!=null){const r=rngFrom(scenKey(s,scen.seed,scen.repeat));return {S:r()<1-PH?SL:SH,eps:Math.floor(r()*(2*E+1))-E};}
   return (scen.items&&scen.items[pos])||null;}
 function mvOf(pos,pairId){return (MV[pos]&&MV[pos][pairId])||{};}
 function resultFor(pos,pairId){const r=RV[pos];if(!r)return null;return outcome(plan[pos].ver,mvOf(pos,pairId),r.D);}
@@ -627,7 +690,7 @@ async function openClass(code,pin){
 }
 function leaveClass(){
   stopAll(unsubs);unsubs=[];clearRoleSubs();mySeat=null;NS=null;lsSet('fr_class','');isInst=false;
-  G=null;pairs=[];movesRaw=[];revRaw=[];scen=null;MV={};RV={};plan=[];showTitle=true;rq();
+  G=null;pairs=[];movesRaw=[];revRaw=[];scen=null;MV={};RV={};plan=[];showTitle=true;applyParams(null);rq();
 }
 // Automatic placement: fill the partner seat of a waiting team, else any open seat, else a demo seat, else start a new supply chain.
 function pickSeat(){
@@ -682,7 +745,7 @@ async function clearSeat(pid,role){
 async function publishBoard(){
   if(!isInst||!G)return;
   if(!(G.release&&G.release.profits)){if(board&&board.rows&&board.rows.length)await save('set','board/all',{sid:G.sid,rows:[]});return;}
-  const rows=activePairs().map(p=>{const c=gameTotal(p.id);return {id:p.id,name:p.name,teams:p.f.team+' / '+p.d.team,f:c.f,d:c.d,t:c.t};});
+  const rows=activePairs().map(p=>{const c=gameTotal(p.id),k=c.n||1;return {id:p.id,name:p.name,teams:p.f.team+' / '+p.d.team,f:c.f/k,d:c.d/k,t:c.t/k,avg:true};});
   await save('set','board/all',{sid:G.sid,pos:G.pos,game:gameName(),rows,at:Date.now()});
 }
 
@@ -700,7 +763,8 @@ async function soloDemo(){
   view.tab='team';view.pair=p1.id;view.role='f';draftKey='';rq();window.scrollTo(0,0);
   toast('You are the fabless in Supply chain 1. Demo teams play every other seat.');
 }
-async function createSession(n,pc,timer,seed,repeat){
+async function createSession(n,pc,timer,seed,repeat,params){
+  params=normParams(params||(G&&G.params));applyParams(params);
   const sid=Math.random().toString(36).slice(2,8);
   const pl=buildPlan(n);
   seed=String(seed==null?'':seed).trim().slice(0,40)||newSeed();repeat=!!repeat;
@@ -709,7 +773,7 @@ async function createSession(n,pc,timer,seed,repeat){
   if(!await save('set','host/scen',{sid,seed,repeat,items:genScen(pl,seed,repeat)}))return false;
   for(let i=1;i<=pc;i++){if(!pairById('p'+i))await save('set','pairs/p'+i,{n:i,name:'Supply chain '+i,f:null,d:null,createdAt:Date.now()});}
   await save('set','game/state',{sid,n,pc,pos:-1,stage:'lobby',curS:null,deadline:null,timerSec:timer,auto:true,calc:false,bots:true,insights:false,negMax:3,extra:[],att:{},
-    release:{profits:false,params:false},createdAt:Date.now()});
+    release:{profits:false,params:false},params,createdAt:Date.now()});
   return true;
 }
 let advBusy=false;
@@ -807,12 +871,12 @@ const NEGMAX=()=>{const v=G?Number(G.negMax):3;return v>=1&&v<=3?v:3;};
 const attNow=()=>((G&&G.att)||{})[G.pos]||0;
 function mkMove(pairId,kind,data){return save('set','pairs/'+pairId+'/moves/'+G.sid+'_'+G.pos+'_'+kind+'_a'+attNow(),Object.assign({sid:G.sid,pos:G.pos,pair:pairId,kind,att:attNow(),ts:Date.now()},data));}
 function botMove(st,ver,ext,S,mv,rnd){
-  const j=n=>Math.round((rnd()*2-1)*n),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lo=S<0?0:120;
-  if(st==='request')return {R:clamp((S<0?150:260)+j(15),0,C)};
-  if(st==='allocate'){const R=mv.req?mv.req.R:0,tgt=VERS[ver].pub?(S<0?80:200):140;return {K0:clamp(tgt+j(12),0,R)};}
+  const j=n=>Math.round((rnd()*2-1)*n),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),l0=lo(S),t=isLow(S)?'L':'H',sw=E/80;
+  if(st==='request')return {R:clamp(Math.round(quant(S,.93))+j(15*sw),0,C)};
+  if(st==='allocate'){const R=mv.req?mv.req.R:0,tgt=VERS[ver].pub?BX.kPub[t]:BX.kPriv;return {K0:clamp(tgt+j(12*sw),0,R)};}
   if(st==='propose'){const K0=mv.alloc?mv.alloc.K0:0;
-    if(ext==='fee'){const K1=clamp(S<0?144:264,0,C);if(K1<=K0)return {K1:null,X:0,skip:true};return {K1,X:Math.round((300+rnd()*2400)/10)*10,skip:false};}
-    const K1=Math.min(C,K0+40);if(K1<=K0)return {K1:null,X:0,skip:true};return {K1,X:clamp(lo+20+Math.round(rnd()*70),0,K1),skip:false};}
+    if(ext==='fee'){const K1=clamp(BX.kEff[t],0,C),fr=BX.fee[t],fl=Math.max(0,fr[0])*.6,fh=Math.max(fl,fr[1]*.88);if(K1<=K0)return {K1:null,X:0,skip:true};return {K1,X:Math.round((fl+rnd()*(fh-fl))/10)*10,skip:false};}
+    const K1=Math.min(C,K0+Math.max(1,Math.round(E/2)));if(K1<=K0)return {K1:null,X:0,skip:true};return {K1,X:clamp(l0+Math.round(E/4)+Math.round(rnd()*E*.875),0,K1),skip:false};}
   return null;
 }
 function botNeg(ext,S,mv,who,rnd){
@@ -820,11 +884,12 @@ function botNeg(ext,S,mv,who,rnd){
   const gain=(role,K1,X)=>expProfit(role,K1,ext==='fee'?X:0,ext==='min'?X:0,S)-expProfit(role,K0,0,0,S);
   const g=gain(who,last.K1,last.X),dec=a=>({kind:'resp',data:{accept:a,by:who,on:n}});
   if(who==='d'){
-    if(g>150||(!canC&&g>0))return dec(true);
+    const sc=Math.max(.01,(BX.eff[2]-BX.ind1[2])/2560);
+    if(g>150*sc||(!canC&&g>0))return dec(true);
     if(!canC)return dec(false);
     let X=last.X;
-    if(ext==='fee')X=Math.round((last.X-g+250+rnd()*500)/10)*10;
-    else{for(let L=Math.round(last.X);L<=last.K1;L++){X=L;if(gain('d',last.K1,L)>=180)break;}}
+    if(ext==='fee')X=Math.round((last.X-g+(250+rnd()*500)*sc)/10)*10;
+    else{for(let L=Math.round(last.X);L<=last.K1;L++){X=L;if(gain('d',last.K1,L)>=180*sc)break;}}
     return {kind:n===1?'o2':'o3',data:{K1:last.K1,X,by:'d'}};
   }
   if(g>0)return dec(true);
@@ -891,28 +956,29 @@ function tilesFor(v){
   return t;
 }
 function mapSVG(v){
-  const t=tilesFor(v),cols=20,s=24;let r='';
-  t.forEach((c,i)=>{r+='<rect class="t-'+c+(v.kind==='settled'?' rv':'')+'"'+(v.kind==='settled'?' style="animation-delay:'+Math.min(i*4,1100)+'ms"':'')+' x="'+((i%cols)*s+2)+'" y="'+(Math.floor(i/cols)*s+2)+'" width="20" height="20" rx="3"/>';});
+  const t=tilesFor(v),cols=Math.max(10,Math.round(Math.sqrt(C*20/14))),s=480/cols,tw=s*.83,rows=Math.ceil(C/cols),vh=Math.round(rows*s+4);let r='';
+  t.forEach((c,i)=>{r+='<rect class="t-'+c+(v.kind==='settled'?' rv':'')+'"'+(v.kind==='settled'?' style="animation-delay:'+Math.min(i*4,1100)+'ms"':'')+' x="'+((i%cols)*s+2).toFixed(1)+'" y="'+(Math.floor(i/cols)*s+2).toFixed(1)+'" width="'+tw.toFixed(1)+'" height="'+tw.toFixed(1)+'" rx="'+(tw*.15).toFixed(1)+'"/>';});
   const leg={settled:[['sold','Sold','var(--fab)'],['excess','Bought above demand','var(--bad)'],['unused','Reserved, unused','transparent;border:2px solid var(--fab)'],['ext','External customers','var(--fdy)']],
     req:[['req','Requested','transparent;border:2px solid var(--fab)']],
     alloc:[['res','Protected for the fabless','var(--fab)'],['ext','External customers','var(--fdy)']],
     inc:[['res','Current guarantee','var(--fab)'],['inc','Proposed increase','var(--fabsoft);border:2px dashed var(--fab)'],['ext','External customers','var(--fdy)']],
     none:[]}[v.kind]||[];
-  return '<svg viewBox="0 0 484 340" role="img" aria-label="Capacity map: 280 wafer starts" style="width:100%;height:auto"><defs><linearGradient id="gF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--fab)"/><stop offset="1" stop-color="var(--fab2)"/></linearGradient><linearGradient id="gD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--fdy)"/><stop offset="1" stop-color="var(--fdy2)"/></linearGradient><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="transparent"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--bad)" stroke-width="3"/></pattern></defs>'+r+'</svg>'+
-    '<div class="legend">'+leg.map(l=>'<span><i style="background:'+l[2]+'"></i>'+l[1]+'</span>').join('')+'<span class="num">1 tile = 1 wafer start · 280 total</span></div>';
+  return '<svg viewBox="0 0 484 '+vh+'" role="img" aria-label="Capacity map: '+C+' wafer starts" style="width:100%;height:auto"><defs><linearGradient id="gF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--fab)"/><stop offset="1" stop-color="var(--fab2)"/></linearGradient><linearGradient id="gD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--fdy)"/><stop offset="1" stop-color="var(--fdy2)"/></linearGradient><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="transparent"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--bad)" stroke-width="3"/></pattern></defs>'+r+'</svg>'+
+    '<div class="legend">'+leg.map(l=>'<span><i style="background:'+l[2]+'"></i>'+l[1]+'</span>').join('')+'<span class="num">1 tile = 1 wafer start · '+fmt(C)+' total</span></div>';
 }
+function niceStep(x){const p=Math.pow(10,Math.floor(Math.log10(Math.max(x,1)))),m=x/p;return (m<=1?1:m<=2?2:m<=2.5?2.5:m<=5?5:10)*p;}
 function demandSVG(o){
-  const x=v=>24+v*(512/280);let g='';
+  const XM=Math.max(C,hiD(SH)),x=v=>24+v*(512/XM),tk=XM===280?70:niceStep(XM/4);let g='';
   const S=o.S;
   const band=(l,u,known,color,label)=>{
     const h=known?66:33,y=100-h;
     return '<rect x="'+x(l)+'" y="'+y+'" width="'+(x(u)-x(l))+'" height="'+h+'" rx="4" fill="url(#gDem)" opacity="'+(known?.75:.45)+'"/>'+
       '<text x="'+(x(l)+4)+'" y="'+(y-5)+'" font-size="11" fill="var(--ink2)">'+label+'</text>';};
-  if(S===null){g+=band(0,160,false,'var(--sig)','Low signal: 0–160');g+=band(120,280,false,'var(--sig)','High signal: 120–280');}
-  else if(S<0){g+=band(0,160,true,'var(--sig)','Low signal (−60): demand 0–160');}
-  else{g+=band(120,280,true,'var(--sig)','High signal (+60): demand 120–280');}
+  if(S===null){g+=band(lo(SL),hiD(SL),false,'var(--sig)','Low signal: '+rngTxt(SL));g+=band(lo(SH),hiD(SH),false,'var(--sig)','High signal: '+rngTxt(SH));}
+  else if(isLow(S)){g+=band(lo(S),hiD(S),true,'var(--sig)','Low signal ('+sgn(S)+'): demand '+rngTxt(S));}
+  else{g+=band(lo(S),hiD(S),true,'var(--sig)','High signal ('+sgn(S)+'): demand '+rngTxt(S));}
   g+='<line x1="24" x2="536" y1="100" y2="100" stroke="var(--ink2)"/>';
-  for(let v=0;v<=280;v+=70)g+='<text x="'+x(v)+'" y="116" font-size="11" text-anchor="middle" fill="var(--ink2)">'+v+'</text>';
+  for(let v=0;v<=XM+1e-9;v+=tk)g+='<text x="'+x(v)+'" y="116" font-size="11" text-anchor="middle" fill="var(--ink2)">'+v+'</text>';
   if(o.K!=null)g+='<line x1="'+x(o.K)+'" x2="'+x(o.K)+'" y1="14" y2="100" stroke="var(--fab)" stroke-width="2.5"/><text x="'+x(o.K)+'" y="10" font-size="11.5" font-weight="700" text-anchor="middle" fill="var(--fab)">guarantee '+o.K+'</text>';
   if(o.K1!=null)g+='<line x1="'+x(o.K1)+'" x2="'+x(o.K1)+'" y1="14" y2="100" stroke="var(--fab)" stroke-width="2" stroke-dasharray="4 3"/><text x="'+x(o.K1)+'" y="10" font-size="11.5" font-weight="700" text-anchor="middle" fill="var(--fab)">proposed '+o.K1+'</text>';
   if(o.D!=null)g+='<path d="M'+x(o.D)+' 100 l-6 10 l6 -4 l6 4z" fill="var(--bad)"/><line x1="'+x(o.D)+'" x2="'+x(o.D)+'" y1="30" y2="100" stroke="var(--bad)" stroke-width="2"/><text x="'+x(o.D)+'" y="26" font-size="12" font-weight="800" text-anchor="middle" fill="var(--bad)">demand '+o.D+'</text>';
@@ -932,7 +998,7 @@ function knownS(role){
 }
 
 /* ---------- wafer level view ---------- */
-const WAF=(function(){
+function buildWAF(){return (function(){
   const w=1,h=.86;
   function build(r){const out=[],n=Math.ceil(r/h)+2;
     for(let j=-n;j<n;j++)for(let i=-n;i<n;i++){const x=i*w,y=j*h;
@@ -940,18 +1006,18 @@ const WAF=(function(){
       if(far<=r)out.push({x:x,y:y,j:j,far:far});}
     return out;}
   let d=[],r=6;
-  for(;r<20;r+=0.02){d=build(r);if(d.length>=C)break;}
+  for(;r<60;r+=(r<20?0.02:0.1)){d=build(r);if(d.length>=C)break;}
   d.sort((a,b)=>b.far-a.far);d=d.slice(d.length-C);
   d.sort((a,b)=>b.j-a.j||a.x-b.x);
   return {dies:d,r:r};
-})();
+})();}
 function waferSVG(vs){
   const cx=330,cy=236,R=212,s=R/WAF.r*0.99,dw=s-2.4,dh=s*.86-2.4;
   const kinds=tilesFor(vs.tiles),dm=vs.demand||{},S=(dm.S==null)?null:dm.S;
   const settled=vs.tiles.kind==='settled';
   const py=d=>cy+d.y*s,px=d=>cx+d.x*s;
   const yAt=v=>{if(v<=0){const d=WAF.dies[0];return py(d)+s*.86;}return py(WAF.dies[Math.min(v,C)-1]);};
-  const dens=i=>{const lo=i<160,hi=i>=120;if(S===null)return (lo?.5:0)+(hi?.5:0);return S<0?(lo?1:0):(hi?1:0);};
+  const inR=(i,s)=>i>=lo(s)&&i<hiD(s),dens=i=>{if(S===null)return (inR(i,SL)?1-PH:0)+(inR(i,SH)?PH:0);return inR(i,S)?1:0;};
   let halo='',tiles='';
   WAF.dies.forEach((d,i)=>{
     const x=px(d)+1.2,y=py(d)+1.2,k=dens(i);
@@ -960,7 +1026,7 @@ function waferSVG(vs){
   });
   let g='<circle cx="'+cx+'" cy="'+cy+'" r="'+(R+7)+'" fill="var(--panel2)" stroke="var(--ink2)" stroke-width="2.5"/><circle cx="'+cx+'" cy="'+(cy+R+7)+'" r="8" fill="var(--panel)"/>';
   // scale + faint level lines
-  [0,70,140,210,280].forEach(v=>{const y=yAt(v);
+  [0,.25,.5,.75,1].map(f=>Math.round(C*f)).forEach(v=>{const y=yAt(v);
     g+='<line x1="'+(cx-R-8)+'" x2="'+(cx+R+8)+'" y1="'+y+'" y2="'+y+'" stroke="var(--ink2)" stroke-width="1" stroke-dasharray="2 5" opacity=".35"/>'+
        '<text class="wf-tick num" x="'+(cx-R-16)+'" y="'+(y+4)+'" text-anchor="end">'+v+'</text>';});
   g+=halo+tiles;
@@ -969,9 +1035,9 @@ function waferSVG(vs){
     return '<path d="M'+(x-6)+' '+y1+' H'+x+' V'+y2+' H'+(x-6)+'" fill="none" stroke="var(--sig)" stroke-width="3" stroke-linecap="round"/>'+
       '<text class="wf-lab" fill="var(--sig)" transform="translate('+(x+15)+','+((y1+y2)/2)+') rotate(-90)" text-anchor="middle">'+label+'</text>';};
   const bx=cx+R+126;
-  if(S===null){g+=br(0,160,bx,'Low signal 0–160')+br(120,280,bx+22,'High signal 120–280');}
-  else if(S<0)g+=br(0,160,bx,'Possible demand 0–160');
-  else g+=br(120,280,bx,'Possible demand 120–280');
+  const bk=(l,h)=>[Math.max(0,Math.min(C,l)),Math.max(0,Math.min(C,h))];
+  if(S===null){const a=bk(lo(SL),hiD(SL)),b2=bk(lo(SH),hiD(SH));g+=br(a[0],a[1],bx,'Low signal '+rngTxt(SL))+br(b2[0],b2[1],bx+22,'High signal '+rngTxt(SH));}
+  else{const a=bk(lo(S),hiD(S));g+=br(a[0],a[1],bx,'Possible demand '+rngTxt(S));}
   // markers
   let lastY=-99;
   const mark=(v,color,text,dash)=>{const y=yAt(v);let ty=y;if(Math.abs(ty-lastY)<22)ty=lastY+22;lastY=ty;
@@ -980,7 +1046,7 @@ function waferSVG(vs){
   if(dm.K!=null)g+=mark(dm.K,'var(--fab)','guarantee '+dm.K);
   if(dm.K1!=null)g+=mark(dm.K1,'var(--fab)','proposed '+dm.K1,true);
   if(dm.D!=null)g+=mark(dm.D,'var(--bad)','demand '+dm.D);
-  return '<svg viewBox="0 0 720 484" role="img" aria-label="Wafer level view: 280 wafer starts filled from the bottom, with possible demand shown as a bracket" style="width:100%;height:auto">'+
+  return '<svg viewBox="0 0 720 484" role="img" aria-label="Wafer level view: '+C+' wafer starts filled from the bottom, with possible demand shown as a bracket" style="width:100%;height:auto">'+
     '<defs><linearGradient id="gF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--fab)"/><stop offset="1" stop-color="var(--fab2)"/></linearGradient><linearGradient id="gD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--fdy)"/><stop offset="1" stop-color="var(--fdy2)"/></linearGradient><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--bad)" stroke-width="3"/></pattern></defs>'+g+'</svg>';
 }
 function legendHTML(kind){
@@ -1019,12 +1085,12 @@ function guidePanel(role,ver,label){
     '<p class="small" style="margin-bottom:0"><b>Each round</b></p><ol class="small">'+g.steps.map(s=>'<li>'+s+'</li>').join('')+'</ol>'+
     '<p class="small"><b>Who pays what:</b> '+g.pay+'</p>'+
     '<p class="small"><b>Think about:</b> '+g.think[role]+'</p>'+
-    '<button class="btn sm ghost" data-act="guide">Compare all four versions</button></details>';
+    (isInst&&view.tab==='console'?'<button class="btn sm ghost" data-act="guide">Compare all four versions</button>':'')+'</details>';
 }
 function openGuide(){
   const rows=VORDER.map(v=>{const g=GUIDE[v];return '<tr><td><b>'+esc(VERS[v].name)+'</b><div class="small muted">'+esc(VERS[v].sub)+'</div></td><td>'+(VERS[v].pub?'Both companies':'Fabless only')+'</td><td>'+(VERS[v].ext?'Request, allocation, then a negotiation over '+(v==='fee'?'K1 and fee F':'K1 and minimum L')+': up to three alternating offers, ending in accept or reject':'Request, then allocation')+'</td><td>'+g.pay+'</td><td>'+g.lesson+'</td></tr>';}).join('');
   modal('How the four versions differ',
-    '<p class="small">Every version uses the same capacity (280 wafer starts), wholesale price (80 per wafer) and demand model D = 140 + S + ε, with S = −60 or +60 (equally likely) and ε uniform on −80 to 80. Each round is an independent year. One practice round comes first and is not scored.</p>'+
+    '<p class="small">Every version uses the same capacity ('+fmt(C)+' wafer starts), wholesale price ('+fmt(W)+' per wafer) and demand model D = '+fmt(MU)+' + S + ε, with S = '+sgn(SL)+' or '+sgn(SH)+' ('+probTxt()+') and ε uniform on −'+fmt(E)+' to '+fmt(E)+'. Each round is an independent year. One practice round comes first and is not scored.</p>'+
     '<div class="scroll"><table class="gtable"><tr><th>Version</th><th>Who sees the signal</th><th>Decisions each round</th><th>What the fabless pays</th><th>Key idea</th></tr>'+rows+'</table></div>'+
     '<h3 style="margin-top:16px">Outcome terms on your results</h3>'+
     '<p class="small"><b>Unmet demand</b> = demand above the guarantee, D − min(D, K). The fabless loses those sales.<br><b>Reserved capacity left unused</b> = guaranteed wafer starts nobody bought. They were taken from external customers and cannot be reassigned after demand is known.<br><b>Wafers purchased above demand</b> happen only under a minimum purchase, when D &lt; L. They are paid for and produced but have no salvage value.</p>'+
@@ -1046,6 +1112,42 @@ function why(st,ext,pub,role){
   }
   return t?'<div class="why"><b>Why it matters</b>'+t+'</div>':'';
 }
+function expLink(role,K,F,L,S,val){const v=val==null?expProfit(role,K,F||0,L||0,S):val;
+  return '<button class="explink num" data-act="expcalc" data-role="'+role+'" data-k="'+K+'" data-f="'+(F||0)+'" data-l="'+(L||0)+'" data-s="'+(S==null?'':S)+'" title="Show how this is calculated">'+fmt(v)+'</button>';}
+const fx=n=>{const r=Math.round(n*1e4)/1e4;return r.toLocaleString('en-US',{maximumFractionDigits:4});};
+function expSteps(role,K,F,L,S){
+  const fmt=fx;
+  const l=lo(S),u=hiD(S),w=2*E,mid=(l+u)/2,f=role==='f';
+  let m,h='<li><b>Demand given the signal.</b> With S = '+sgn(S)+', demand D = '+fmt(MU)+' + ('+sgn(S)+') + ε is uniform between <span class="num">'+fmt(l)+'</span> and <span class="num">'+fmt(u)+'</span> (width '+fmt(w)+').</li>';
+  if(K<=l){m=K;h+='<li><b>Expected sales E[min(D, K)].</b> The guarantee K = '+fmt(K)+' is at or below the lowest possible demand ('+fmt(l)+'), so all '+fmt(K)+' wafers are always used: E[min(D, K)] = <b class="num">'+fmt(m)+'</b>.</li>';}
+  else if(K>=u){m=mid;h+='<li><b>Expected sales E[min(D, K)].</b> The guarantee K = '+fmt(K)+' is at or above the highest possible demand ('+fmt(u)+'), so every unit of demand is served: E[min(D, K)] = average demand = ('+fmt(l)+' + '+fmt(u)+') / 2 = <b class="num">'+fmt(m)+'</b>.</li>';}
+  else{const pr=(K-l)/w,av=(l+K)/2;m=K-(K-l)**2/(2*w);
+    h+='<li><b>Expected sales E[min(D, K)] with K = '+fmt(K)+'.</b><br>Chance demand falls below K: ('+fmt(K)+' − '+fmt(l)+') / '+fmt(w)+' = <span class="num">'+fmt(pr)+'</span>. In that case sales average ('+fmt(l)+' + '+fmt(K)+') / 2 = <span class="num">'+fmt(av)+'</span>.<br>Chance demand reaches K: 1 − '+fmt(pr)+' = <span class="num">'+fmt(1-pr)+'</span>. In that case sales are all '+fmt(K)+'.<br>E[min(D, K)] = '+fmt(pr)+' × '+fmt(av)+' + '+fmt(1-pr)+' × '+fmt(K)+' = <b class="num">'+fmt(m)+'</b>.</li>';}
+  let ex=0;
+  if(L>0){
+    if(L<=l)h+='<li><b>Expected wafers bought above demand E[(L − D)⁺].</b> The minimum purchase L = '+fmt(L)+' is at or below the lowest possible demand, so it never binds: <b class="num">0</b>.</li>';
+    else if(L>=u){ex=L-mid;h+='<li><b>Expected wafers bought above demand E[(L − D)⁺].</b> Demand is always below L = '+fmt(L)+', so this is L − average demand = '+fmt(L)+' − '+fmt(mid)+' = <b class="num">'+fmt(ex)+'</b>.</li>';}
+    else{const pr=(L-l)/w,gap=(L-l)/2;ex=pr*gap;h+='<li><b>Expected wafers bought above demand E[(L − D)⁺] with L = '+fmt(L)+'.</b><br>Chance demand falls below L: ('+fmt(L)+' − '+fmt(l)+') / '+fmt(w)+' = <span class="num">'+fmt(pr)+'</span>. In that case the shortfall L − D averages ('+fmt(L)+' − '+fmt(l)+') / 2 = <span class="num">'+fmt(gap)+'</span>. Otherwise it is 0.<br>E[(L − D)⁺] = '+fmt(pr)+' × '+fmt(gap)+' = <b class="num">'+fmt(ex)+'</b>.</li>';}
+    h+='<li><b>Expected wafers purchased</b> = expected sales + expected excess = '+fmt(m)+' + '+fmt(ex)+' = <b class="num">'+fmt(m+ex)+'</b>.</li>';
+  }
+  const pu=m+ex;let tot;
+  if(f){tot=P*m-W*pu-F;
+    h+='<li><b>Expected profit</b> = p × expected sales − w × expected wafers purchased'+(F?' − fee F':'')+'<br>= '+fmt(P)+' × '+fmt(m)+' − '+fmt(W)+' × '+fmt(pu)+(F?' − '+fmt(F):'')+'<br>= '+fmt(P*m)+' − '+fmt(W*pu)+(F?' − '+fmt(F):'')+' = <b class="num">'+fmt(tot)+'</b>.</li>';}
+  else{tot=(W-COST)*pu+B*(C-K)+F;
+    h+='<li><b>Expected profit</b> = (w − c) × expected wafers produced + b × (C − K)'+(F?' + fee F':'')+'<br>= ('+fmt(W)+' − '+fmt(COST)+') × '+fmt(pu)+' + '+fmt(B)+' × ('+fmt(C)+' − '+fmt(K)+')'+(F?' + '+fmt(F):'')+'<br>= '+fmt((W-COST)*pu)+' + '+fmt(B*(C-K))+(F?' + '+fmt(F):'')+' = <b class="num">'+fmt(tot)+'</b>.</li>';}
+  return {h,tot};
+}
+function openExpCalc(ds){
+  const fmt=fx;
+  const role=ds.role,K=Number(ds.k),F=Number(ds.f)||0,L=Number(ds.l)||0,S=ds.s===''?null:Number(ds.s);
+  const terms='K = '+fmt(K)+(F?', reservation fee F = '+fmt(F):'')+(L?', minimum purchase L = '+fmt(L):'');
+  let body='<p class="small">How the expected profit for your company ('+(role==='f'?'fabless':'foundry')+') is calculated with '+terms+'. “Expected” means averaged over all demand outcomes that were possible before demand was revealed.</p>';
+  if(S!=null){body+='<ol class="calc">'+expSteps(role,K,F,L,S).h+'</ol>';}
+  else{const a=expSteps(role,K,F,L,SL),b2=expSteps(role,K,F,L,SH);
+    body+='<p class="small"><b>If the signal is low:</b></p><ol class="calc">'+a.h+'</ol><p class="small"><b>If the signal is high:</b></p><ol class="calc">'+b2.h+'</ol><p>Weighted by the signal probabilities: '+fmt(1-PH)+' × '+fmt(a.tot)+' + '+fmt(PH)+' × '+fmt(b2.tot)+' = <b class="num">'+fmt((1-PH)*a.tot+PH*b2.tot)+'</b>.</p>';}
+  body+='<p class="small muted">Actual profit differs from this number because actual demand is a single draw from the range above.</p>';
+  modal('How this expected profit is calculated',body,[{label:'Close',cls:''}],true);
+}
 function explainHTML(role,pairId,pos){
   const step=plan[pos],ver=step.ver,ext=VERS[ver].ext,pub=VERS[ver].pub,o=resultFor(pos,pairId),r=RV[pos];
   if(!o||!r)return '';
@@ -1053,7 +1155,7 @@ function explainHTML(role,pairId,pos){
   const mine=f?o.fProfit:o.dProfit,base=f?o.base.fProfit:o.base.dProfit;
   let h='';
   // demand
-  h+=it('sig','Where demand came from','The signal was '+(r.S<0?'low (−60)':'high (+60)')+', so demand was always going to land between '+(r.S<0?'0 and 160':'120 and 280')+'. The remaining randomness ε = '+sgn(r.eps)+' put actual demand at <b>D = '+r.D+'</b> wafers.'+(!f&&!pub?' Your team did not see the signal this round; your only clue was the request of '+o.R+'.':''));
+  h+=it('sig','Where demand came from','The signal was '+sigTxt(r.S)+', so demand was always going to land between '+rngTxt(r.S,' and ')+'. The remaining randomness ε = '+sgn(r.eps)+' put actual demand at <b>D = '+r.D+'</b> wafers.'+(!f&&!pub?' Your team did not see the signal this round; your only clue was the request of '+o.R+'.':''));
   // guarantee
   let g='The fabless requested '+o.R+' and the foundry protected <b>K0 = '+o.K0+'</b>.';
   if(o.miss.length)g+=' A decision was missing ('+o.miss.join(', ')+'), so the default rule applied.';
@@ -1068,13 +1170,13 @@ function explainHTML(role,pairId,pos){
   let m,mc;
   if(r.D>o.K){
     m='Demand ('+r.D+') was higher than the guarantee ('+o.K+'), so every protected wafer was used and <b>'+fmt(o.unmet)+' wafers of demand went unserved</b>.';
-    m+=f?' Each unserved wafer would have earned you 240 − 80 = 160, so the shortfall cost you <b>'+fmt(160*o.unmet)+'</b> in missed profit.'
-        :' Each of those wafers would have earned you 80 − 40 = 40 while costing 20 of external contribution, a net of +20 each. In this outcome a larger guarantee would have added up to <b>'+fmt(20*o.unmet)+'</b>.';
+    m+=f?' Each unserved wafer would have earned you '+fmt(P)+' − '+fmt(W)+' = '+fmt(P-W)+', so the shortfall cost you <b>'+fmt((P-W)*o.unmet)+'</b> in missed profit.'
+        :' Each of those wafers would have earned you '+fmt(W)+' − '+fmt(COST)+' = '+fmt(W-COST)+' while costing '+fmt(B)+' of external contribution, a net of +'+fmt(W-COST-B)+' each. In this outcome a larger guarantee would have added up to <b>'+fmt((W-COST-B)*o.unmet)+'</b>.';
     mc=f?'bad':'';
   }else{
     m='Demand ('+r.D+') fit within the guarantee ('+o.K+'), so no demand went unserved.';
     if(o.unused>0)m+=' <b>'+fmt(o.unused)+' protected wafer starts went unused.</b>'+(f?(ext==='fee'&&o.F>0?' You pay no wholesale price on unused capacity, but part of the fee bought capacity you didn’t need this time.':' You pay nothing for unused capacity, so it cost you nothing directly.')
-        :' Each one could have earned 20 from external customers, so protecting them cost you <b>'+fmt(20*o.unused)+'</b>.');
+        :' Each one could have earned '+fmt(B)+' from external customers, so protecting them cost you <b>'+fmt(B*o.unused)+'</b>.');
     else m+=' Every protected wafer was used.';
     mc=o.unused>0&&!f?'bad':'good';
   }
@@ -1085,12 +1187,12 @@ function explainHTML(role,pairId,pos){
     if(!o.acc)c=f?'No agreement was reached, so you paid nothing extra and kept K0 = '+o.K0+'. Your profit is the same as under the original plan.':'No agreement was reached, so the original plan stood and your profit is the same as under it.';
     else{
       const xp=o.purchased-o.base.purchased;
-      if(f)c=extra>0?'The extra '+dK+' wafer starts let you sell <b>'+fmt(extra)+'</b> more wafers in this outcome, worth '+fmt(160*extra)+' at 160 each.'
+      if(f)c=extra>0?'The extra '+dK+' wafer starts let you sell <b>'+fmt(extra)+'</b> more wafers in this outcome, worth '+fmt((P-W)*extra)+' at '+fmt(P-W)+' each.'
         :'The extra '+dK+' wafer starts were not needed this time: demand ('+r.D+') did not exceed the original guarantee of '+o.K0+', so you sold no additional wafers.';
-      else c='The extra '+dK+' wafer starts cost you '+fmt(20*dK)+' of external contribution. '+(xp>0?'In return the fabless bought '+fmt(xp)+' more wafers from you, worth '+fmt(40*xp)+' at 40 each.':'The fabless bought no additional wafers this time.');
+      else c='The extra '+dK+' wafer starts cost you '+fmt(B*dK)+' of external contribution. '+(xp>0?'In return the fabless bought '+fmt(xp)+' more wafers from you, worth '+fmt((W-COST)*xp)+' at '+fmt(W-COST)+' each.':'The fabless bought no additional wafers this time.');
       if(ext==='fee')c+=f?' You paid the fee of '+fmt(o.F)+' regardless.':' You also collected the fee of '+fmt(o.F)+'.';
       else{
-        if(o.excess>0)c+=f?' Demand ('+r.D+') came in below your commitment ('+o.L+'), so you bought <b>'+fmt(o.excess)+' wafers above demand</b> at 80 each ('+fmt(80*o.excess)+') that could not be sold.'
+        if(o.excess>0)c+=f?' Demand ('+r.D+') came in below your commitment ('+o.L+'), so you bought <b>'+fmt(o.excess)+' wafers above demand</b> at '+fmt(W)+' each ('+fmt(W*o.excess)+') that could not be sold.'
                         :' Demand ('+r.D+') came in below the commitment ('+o.L+'), so the fabless still paid for '+o.L+' wafers, '+fmt(o.excess)+' more than it could sell. That is the protection the commitment gives you.';
         else c+=' Demand ('+r.D+') was at or above the commitment ('+o.L+'), so the minimum purchase did not bind and cost nothing extra this time.';
       }
@@ -1102,23 +1204,23 @@ function explainHTML(role,pairId,pos){
   }
   // luck versus decision
   const e=expProfit(role,o.K,o.F,o.L,r.S),d=mine-e;
-  h+=it('','Decision versus luck','Given the signal'+(!f&&!pub?' (which your team did not see at the time)':'')+', the expected profit of the final agreement was <b>'+fmt(e)+'</b>. You earned <b>'+fmt(mine)+'</b>, so the random part of demand '+(d>=0?'added ':'cost you ')+fmt(Math.abs(d))+'. A sound decision can still meet bad luck, so compare choices by their expected profit, not by one round.');
+  h+=it('','Decision versus luck','Given the signal'+(!f&&!pub?' (which your team did not see at the time)':'')+', the expected profit of the final agreement was '+expLink(role,o.K,o.F,o.L,r.S,e)+'. You earned <b>'+fmt(mine)+'</b>, so the random part of demand '+(d>=0?'added ':'cost you ')+fmt(Math.abs(d))+'. A sound decision can still meet bad luck, so compare choices by their expected profit, not by one round.');
   // what-if with the same demand
   const alt=dk=>{const K2=Math.max(0,Math.min(C,o.K+dk));if(K2===o.K)return null;const L2=Math.min(o.L,K2),x=econ(K2,o.F,L2,r.D);return {K:K2,v:f?x.fProfit:x.dProfit};};
-  const a1=alt(20),a2=alt(-20);const parts=[];
+  const stp=Math.max(1,Math.round(C/14)),a1=alt(stp),a2=alt(-stp);const parts=[];
   if(a2)parts.push('K = '+a2.K+' would have given you '+fmt(a2.v));
   if(a1)parts.push('K = '+a1.K+' would have given you '+fmt(a1.v));
   if(parts.length)h+=it('','Same demand, different guarantee','Holding demand at '+r.D+' and other terms fixed, '+parts.join(', and ')+'. In hindsight the ideal guarantee is always exactly the demand, but it has to be chosen before demand is known.');
   // optional benchmark insight
   if(G.insights){
-    const kI=pub?(r.S<0?80:200):140,kE=r.S<0?144:264,pv=k=>{const x=econ(k,0,0,r.D);return f?x.fProfit:x.dProfit;};
-    h+=it('sig','Benchmark comparison (released by your instructor)','A foundry maximizing its own expected profit protects K = '+kI+' here ('+(pub?'the median of demand given the signal':'the median of demand before the signal is known')+'). The guarantee that maximizes combined supply-chain profit is K = '+kE+' (the 90th percentile given the signal). With this same demand, your company would have earned '+fmt(pv(kI))+' at K = '+kI+' and '+fmt(pv(kE))+' at K = '+kE+', before any fee or commitment. Expected values given the signal: '+fmt(expProfit(role,kI,0,0,r.S))+' and '+fmt(expProfit(role,kE,0,0,r.S))+'.');
+    const tS=isLow(r.S)?'L':'H',kI=pub?BX.kPub[tS]:BX.kPriv,kE=BX.kEff[tS],pv=k=>{const x=econ(k,0,0,r.D);return f?x.fProfit:x.dProfit;};
+    h+=it('sig','Benchmark comparison (released by your instructor)','A foundry maximizing its own expected profit protects K = '+kI+' here ('+(pub?'the '+pctName(BX.qd)+' of demand given the signal':'the '+pctName(BX.qd)+' of demand before the signal is known')+'). The guarantee that maximizes combined supply-chain profit is K = '+kE+' (the '+pctName(BX.qe)+' given the signal). With this same demand, your company would have earned '+fmt(pv(kI))+' at K = '+kI+' and '+fmt(pv(kE))+' at K = '+kE+', before any fee or commitment. Expected values given the signal: '+expLink(role,kI,0,0,r.S)+' and '+expLink(role,kE,0,0,r.S)+'.');
   }
   return h;
 }
 function versionSummary(role,pairId,ver){
   const c=cumFor(pairId,ver),mine=role==='f'?c.f:c.d,idx=role==='f'?0:1;
-  let s='<p>Across the rounds of the '+esc(GUIDE[ver].title.toLowerCase())+', your company earned <b class="num">'+fmt(mine)+'</b> over '+c.n+' round'+(c.n===1?'':'s')+(c.n?' (an average of <b class="num">'+fmt(mine/c.n)+'</b> per round)':'')+'.</p>';
+  let s='<p>Across the '+c.n+' round'+(c.n===1?'':'s')+' of the '+esc(GUIDE[ver].title.toLowerCase())+', your company’s average profit was <b class="num">'+fmt(c.n?mine/c.n:0)+'</b> per round.</p>';
   s+='<div class="why"><b>Key idea</b>'+GUIDE[ver].lesson+'</div>';
   if(G.insights){const b=BENCH[ver];s+='<p class="small">Benchmark expected profit per round for your company: '+(b.ind?'independent allocation <b class="num">'+fmt(b.ind[idx])+'</b>':'')+(b.eff?', efficient allocation before any payment <b class="num">'+fmt(b.eff[idx])+'</b>':'')+'.</p>';}
   return s;
@@ -1136,8 +1238,8 @@ function titleView(){
   if(standalone&&NS)go+='<button class="btn xl ghost" data-act="leave">Switch class</button>';
   return '<div class="title"><div class="inner">'+wafer(true,13,10)+'<h1 class="disp">Fab-Rush</h1>'+
     '<p class="tag">A semiconductor supply chain game. Reserve capacity before demand shows up.</p>'+
-    '<div class="facts"><span class="f">Fabless</span><span class="d">Foundry</span><span>280 wafer starts</span><span>4 versions</span></div>'+
-    '<div class="go">'+go+'<button class="btn xl ghost" data-act="guide">How the game works</button></div>'+(Store.mode==='local'?'<p class="small muted" style="margin-top:14px">'+(standalone?'Browser-only mode: all teams play in this browser, one tab each.':'Solo preview: data stays in this tab.')+'</p>':'')+'</div></div>';
+    '<div class="facts"><span class="f">Fabless</span><span class="d">Foundry</span></div>'+
+    '<div class="go">'+go+'</div>'+(Store.mode==='local'?'<p class="small muted" style="margin-top:14px">'+(standalone?'Browser-only mode: all teams play in this browser, one tab each.':'Solo preview: data stays in this tab.')+'</p>':'')+'</div></div>';
 }
 function topbar(ctx){
   let st='';
@@ -1152,7 +1254,7 @@ function topbar(ctx){
   }else if(ctx){
     who='<span class="chip '+ctx.role+'">'+esc(ctx.pair.name)+' · '+(ctx.role==='f'?'Fabless':'Foundry')+' · '+esc((ctx.role==='f'?ctx.pair.f:ctx.pair.d).team)+'</span>';
   }
-  st+='<button class="chip chipbtn" data-act="guide">Game guide</button>';
+  if(isInst&&view.tab==='console')st+='<button class="chip chipbtn" data-act="guide">Game guide</button>';
   if(standalone&&NS)st+='<span class="chip">Class <b class="num">'+esc(NS)+'</b></span><button class="chip chipbtn" data-act="leave">Leave class</button>';
   return '<header class="top">'+brand()+'<div class="status">'+st+who+'</div></header>'+
     (Store.mode==='local'?'<div class="banner">'+(standalone?'Browser-only mode: this copy is not connected to an online database, so every team must play in this browser (one tab per team). Follow SETUP.md to let students join from their own devices.':'Solo preview: data stays in this tab. Open the published link from claude.ai to play live with teams.')+'</div>':'');
@@ -1160,7 +1262,7 @@ function topbar(ctx){
 function loadingView(){return '<div class="hero"><div>'+wafer(true)+'</div><div><h1 class="disp">Fab-Rush</h1><p class="muted">Connecting to the fab…</p></div></div>';}
 function heroBlock(extra){
   return '<div class="hero"><div>'+wafer(true)+'</div><div><h1 class="disp">Fab-Rush</h1>'+
-    '<p>Two companies, one fab, 280 wafer starts a year. Reserve capacity before demand shows up, or lose it to someone else.</p>'+(extra||'')+'</div></div>';
+    '<p>Two companies, one fab, '+fmt(C)+' wafer starts a year. Reserve capacity before demand shows up, or lose it to someone else.</p>'+(extra||'')+'</div></div>';
 }
 function joinView(){
   const team=lsGet('fr_team')||'';
@@ -1184,8 +1286,53 @@ function gateView(){
     '<div class="msg err">'+esc(gateMsg.inst||'')+'</div></section></div></div>';
 }
 function waitingView(msg){return heroBlock('<p class="muted">'+msg+'</p>');}
+let setupFlow=null,paramDraft=null;
+const PFIELDS=[
+  ['C','Annual wafer-start capacity','C','Both companies see it.',1],
+  ['P','Fabless revenue per wafer sold','p','Only the fabless sees it.','any'],
+  ['W','Wholesale price per wafer','w','Both companies see it.','any'],
+  ['COST','Foundry production cost per wafer','c','Only the foundry sees it.','any'],
+  ['B','External contribution per unit','b','Only the foundry sees it.','any'],
+  ['MU','Baseline demand','μ','D = μ + S + ε',1],
+  ['SL','Low signal value','S low','Usually negative.',1],
+  ['SH','High signal value','S high','Usually positive.',1],
+  ['PH','Probability of the high signal','Pr(high)','Between 0 and 1. The low signal gets the rest.','any'],
+  ['E','Error range','e','ε is uniform on [−e, e].',1]];
+function pField(f){const v=paramDraft[f[0]];
+  return '<div class="pf"><label class="fld" for="pp-'+f[0]+'">'+f[1]+' <span class="sym">'+esc(f[2])+'</span></label>'+
+    '<input type="number" id="pp-'+f[0]+'" data-p="'+f[0]+'" step="'+(f[4]==='any'?'any':'1')+'" value="'+esc(v)+'"'+(f[0]==='PH'?' min="0" max="1"':'')+'>'+
+    '<div class="small muted">'+f[3]+'</div></div>';}
+function setupSteps(n){return '<p class="small muted" style="margin:0 0 10px">Step '+n+' of 2: '+(n===1?'game parameters':'game settings')+'</p>';}
+function paramsView(){
+  if(!paramDraft)paramDraft=normParams(G&&G.params);
+  return setupSteps(1)+'<div class="grid2"><div class="col">'+
+    '<section class="panel"><h2>Capacity and prices</h2><div class="pgrid">'+PFIELDS.slice(0,5).map(pField).join('')+'</div></section>'+
+    '<section class="panel"><h2>Demand and signal</h2><p class="small muted" style="margin:0">Demand D = μ + S + ε. The signal S takes the low or high value; the error ε is uniform on [−e, e] and independent of S.</p><div class="pgrid">'+PFIELDS.slice(5).map(pField).join('')+'</div></section>'+
+    '</div><div class="col"><section class="panel"><h2>What these settings imply</h2><div id="pp-prev">'+paramPreview()+'</div></section>'+
+    '<div class="row" style="margin-top:14px"><button class="btn" data-act="pp-next">Continue to game settings</button><button class="btn ghost" data-act="pp-reset">Reset to defaults</button>'+(G?'<button class="btn ghost" data-act="pp-cancel">Back to current session</button>':'')+'</div></div></div>';
+}
+function paramPreview(){
+  const v=validateParams(paramDraft);
+  if(v.err.length)return '<div class="msg err"><ul class="perr">'+v.err.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div><p class="small muted">Fix these to see the demand ranges and benchmarks.</p>';
+  return withParams(paramDraft,()=>{
+    const row=(l,t)=>'<tr><td>'+l+'</td><td class="num r">'+fmt(t[0])+'</td><td class="num r">'+fmt(t[1])+'</td><td class="num r">'+fmt(t[2])+'</td></tr>';
+    return '<div class="kv small"><span>Demand after a low signal</span><b class="num">Uniform['+fmt(lo(SL))+', '+fmt(hiD(SL))+']</b>'+
+      '<span>Demand after a high signal</span><b class="num">Uniform['+fmt(lo(SH))+', '+fmt(hiD(SH))+']</b>'+
+      '<span>Foundry’s own-profit allocation, private signal</span><b class="num">'+fmt(BX.kPriv)+'</b>'+
+      '<span>Foundry’s own-profit allocation, public signal</span><b class="num">'+fmt(BX.kPub.L)+' low · '+fmt(BX.kPub.H)+' high</b>'+
+      '<span>Efficient allocation (max combined profit)</span><b class="num">'+fmt(BX.kEff.L)+' low · '+fmt(BX.kEff.H)+' high</b>'+
+      '<span>Fees that make both better off (efficient increase)</span><b class="num">'+feeRangeTxt()+'</b></div>'+
+      '<div class="scroll" style="margin-top:10px"><table class="data"><tr><th>Expected profit per round</th><th class="r">Fabless</th><th class="r">Foundry</th><th class="r">Combined</th></tr>'+
+      row('Private signal, independent',BX.ind0)+row('Public signal, independent',BX.ind1)+row('Public signal, efficient',BX.eff)+'</table></div>'+
+      '<p class="small muted">The foundry’s own-profit allocation is the '+pctName(BX.qd)+' of demand: demand exceeds it with probability b / (w − c). The efficient allocation is the '+pctName(BX.qe)+': demand exceeds it with probability b / (p − c). The debrief and benchmark screens use these figures.</p>'+
+      (v.warn.length?'<div class="msg"><ul class="perr">'+v.warn.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>':'');
+  });
+}
+function refreshParamPreview(){const el=document.getElementById('pp-prev');if(el)el.innerHTML=paramPreview();}
+function paramSummary(){const q=normParams(paramDraft);return 'C = '+fmt(q.C)+', p = '+fmt(q.P)+', w = '+fmt(q.W)+', c = '+fmt(q.COST)+', b = '+fmt(q.B)+'; D = '+fmt(q.MU)+' + S + ε with S = '+sgn(q.SL)+' or '+sgn(q.SH)+' (Pr(high) = '+fmt(q.PH)+'), ε uniform on [−'+fmt(q.E)+', '+fmt(q.E)+'].';}
 function setupView(){
-  return heroBlock()+'<div class="panel"><h2>Create a session</h2><p class="muted small">One practice round comes first. Each of the four versions then runs for the number of rounds you choose.</p>'+
+  return setupSteps(2)+'<div class="panel"><h2>Game settings</h2><p class="small"><b>Parameters:</b> '+esc(paramSummary())+' <button class="btn sm ghost" data-act="pp-back">Change</button></p><p class="muted small">One practice round comes first. Each of the four versions then runs for the number of rounds you choose.</p>'+
+    (G?'<p class="small muted">Creating this session replaces the current one. Seats stay as they are. Export your results first if you need them.</p>':'')+
     '<label class="fld" for="s-n">Scored rounds per version</label><input type="number" id="s-n" min="1" max="8" value="4">'+
     '<label class="fld" for="s-pc">Supply chains to prepare now</label><input type="number" id="s-pc" min="0" max="40" value="0"><p class="small muted" style="margin:4px 0 0">0 is fine: supply chains are created automatically as teams join, each with one fabless and one foundry team.</p>'+
     '<label class="fld" for="s-t">Decision timer in seconds (0 for none)</label><input type="number" id="s-t" min="0" max="900" value="90">'+
@@ -1193,7 +1340,7 @@ function setupView(){
     '<p class="small muted" style="margin:4px 0 0">The same seed and number of rounds always produce the same signals and demand, so you can rerun a session or give two sections identical scenarios.</p>'+
     '<label class="fld" style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="s-rep" > Use the same demand sequence in every version</label>'+
     '<p class="small muted" style="margin:4px 0 0">When checked, round 1 of every version has the same signal and demand, round 2 the same, and so on. Teams can then compare versions directly. Unchecked, every round is an independent draw.</p>'+
-    '<div class="row" style="margin-top:16px"><button class="btn" data-act="create">Create session</button></div></div>';
+    '<div class="row" style="margin-top:16px"><button class="btn" data-act="create">Create session</button><button class="btn ghost" data-act="pp-back">Back to parameters</button></div></div>';
 }
 
 function steps(){
@@ -1207,9 +1354,9 @@ function setDraftDefaults(role,pairId){
   const mv=mvOf(G.pos,pairId),nOff=offersOf(mv).length;
   const key=G.sid+'_'+G.pos+'_'+G.stage+'_'+role+'_'+pairId+'_'+nOff+'#'+attNow();
   if(key===draftKey)return;draftKey=key;draft={};
-  if(G.stage==='request')draft.R=140;
+  if(G.stage==='request')draft.R=Math.max(0,Math.min(C,Math.round(MU)));
   if(G.stage==='allocate'){const R=mv.req?mv.req.R:0;draft.K0=Math.round(R/2);}
-  if(G.stage==='propose'){const K0=mv.alloc?mv.alloc.K0:0;draft.K1=Math.min(C,K0+20);draft.X=0;}
+  if(G.stage==='propose'){const K0=mv.alloc?mv.alloc.K0:0;draft.K1=Math.min(C,K0+Math.max(1,Math.round(C/14)));draft.X=0;}
   if(G.stage==='respond'&&nOff){const l=offersOf(mv)[nOff-1];draft.K1=l.K1;draft.X=l.X;}
 }
 function slider(k,min,max,val,label){
@@ -1220,7 +1367,7 @@ function decisionCard(role,pairId,canAct){
   setDraftDefaults(role,pairId);
   const band='<div class="roleband '+role+'"><span class="disp">'+(role==='f'?'Fabless':'Foundry')+'</span><span>'+(role==='f'?'Designs and sells chips. Keeps the revenue, pays for wafers.':'Runs the fab. Splits capacity between the fabless and external customers.')+'</span></div>';
   let h=band+steps(),body='',lock='';
-  const sBadge=()=>{const S=knownS(role);return S===null?'<p class="small muted">You do not see the demand signal this round.</p>':'<p><span class="pill '+role+'">Signal '+(S<0?'low (−60)':'high (+60)')+'</span> Demand will fall in '+(S<0?'0–160':'120–280')+'.</p>';};
+  const sBadge=()=>{const S=knownS(role);return S===null?'<p class="small muted">You do not see the demand signal this round.</p>':'<p><span class="pill '+role+'">Signal '+sigTxt(S)+'</span> Demand will fall in '+rngTxt(S)+'.</p>';};
   if(st==='lobby')body='<h2>Waiting to start</h2><p class="muted">The instructor will open the practice round. Look over the information on the right in the meantime.</p>';
   else if(st==='ready')body='<h2>Next round is being prepared</h2><p class="muted">The instructor will open it shortly.</p>';
   else if(st==='request'){
@@ -1295,9 +1442,9 @@ function resultsBlock(role,pairId){
   const step=curStep(),ver=step.ver,ext=VERS[ver].ext,o=resultFor(G.pos,pairId),r=RV[G.pos];
   if(!o)return '';
   const mine=role==='f'?o.fProfit:o.dProfit,base=role==='f'?o.base.fProfit:o.base.dProfit;
-  const cum=gameTotal(pairId),cumMine=role==='f'?cum.f:cum.d;
+  const cum=gameTotal(pairId),cumMine=role==='f'?cum.f:cum.d,avgMine=cum.n?cumMine/cum.n:0,avgPrev=cum.n>1?(cumMine-mine)/(cum.n-1):0;
   let t='<h2>Round results</h2><div class="kpis"><div class="kpi '+(mine>0?'pos':mine<0?'neg':'')+'"><span class="big num '+cls(mine)+'" data-count="'+mine+'" data-ckey="'+G.sid+'_'+G.pos+'_'+pairId+'_'+role+'_r">'+fmt(mine)+'</span><span class="small muted">Round profit</span></div>'+
-    (step.practice?'<div class="kpi"><span class="small muted">Practice round: not scored.</span></div>':'<div class="kpi"><span class="big num" data-count="'+cumMine+'" data-from="'+(cumMine-mine)+'" data-ckey="'+G.sid+'_'+G.pos+'_'+pairId+'_'+role+'_c">'+fmt(cumMine)+'</span><span class="small muted">Total in this game</span></div>')+'</div>';
+    (step.practice?'<div class="kpi"><span class="small muted">Practice round: not scored.</span></div>':'<div class="kpi"><span class="big num" data-count="'+avgMine+'" data-from="'+avgPrev+'" data-ckey="'+G.sid+'_'+G.pos+'_'+pairId+'_'+role+'_a">'+fmt(avgMine)+'</span><span class="small muted">Average in game ('+cum.n+' round'+(cum.n===1?'':'s')+')</span></div>')+'</div>';
   t+='<table class="stmt">'+row('Signal / error / demand','S = '+sgn(r.S)+' · ε = '+sgn(r.eps)+' · D = '+r.D);
   t+=row(role==='f'?'Your request → foundry allocation':'Fabless request → your allocation',o.R+' → '+o.K0);
   if(ext){t+=row('Negotiation',o.proposed?(o.nOff+' offer'+(o.nOff>1?'s':'')+', '+(o.acc?'agreed on offer '+o.accOn+' ('+(o.finBy==='f'?'fabless':'foundry')+' terms)':'no agreement')):'No proposal');
@@ -1316,7 +1463,7 @@ function resultsBlock(role,pairId){
   }
   t+='<tr class="tot"><td>Round profit</td><td class="num '+cls(mine)+'">'+fmt(mine)+'</td></tr></table>';
   if(ext){const dl=mine-base;t+='<p class="small" style="margin-top:10px"><b>Versus the original plan (K = '+o.K0+', same demand):</b> profit would have been <span class="num">'+fmt(base)+'</span>. The agreement '+(o.acc?'changed it by <b class="num '+cls(dl)+'">'+sgn(dl)+'</b>.':'was not accepted, so nothing changed.')+'</p>';}
-  t+='<details class="ex" id="det-explain"'+detOpen('det-explain',true)+'><summary><span style="font-size:16px">What happened and why</span></summary>'+explainHTML(role,pairId,G.pos)+'</details>';
+  const exId='det-explain-'+G.sid+'-'+G.pos+'-'+(attNow()||0);t+='<details class="ex" id="'+exId+'"'+detOpen(exId,false)+'><summary><span style="font-size:16px">What happened and why</span></summary>'+explainHTML(role,pairId,G.pos)+'</details>';
   if(G.release&&G.release.profits){const other=role==='f'?o.dProfit:o.fProfit;t+='<p class="small">Counterparty round profit: <b class="num">'+fmt(other)+'</b> · combined: <b class="num">'+fmt(o.fProfit+o.dProfit)+'</b></p>';}
   return t;
 }
@@ -1325,15 +1472,15 @@ function infoSheet(role){
   const hid='<span class="hid">Hidden</span>';
   const show=(own,v)=>own||rel?'<b class="num">'+v+'</b>':hid;
   return '<section class="panel"><h3>What you know</h3><div class="kv small">'+
-    '<span>Wafer-start capacity C</span><b class="num">280</b><span>Wholesale price w</span><b class="num">80</b>'+
-    '<span>Demand model</span><b>D = 140 + S + ε</b><span>Signal S</span><b>−60 or +60, equally likely</b><span>Error ε</span><b>Uniform[−80, 80]</b>'+
-    '<span>Fabless revenue per wafer p</span>'+show(role==='f',240)+'<span>Foundry production cost c</span>'+show(role==='d',40)+'<span>External contribution b</span>'+show(role==='d',20)+
+    '<span>Wafer-start capacity C</span><b class="num">'+fmt(C)+'</b><span>Wholesale price w</span><b class="num">'+fmt(W)+'</b>'+
+    '<span>Demand model</span><b>D = '+fmt(MU)+' + S + ε</b><span>Signal S</span><b>'+sgn(SL)+' or '+sgn(SH)+', '+probTxt()+'</b><span>Error ε</span><b>Uniform[−'+fmt(E)+', '+fmt(E)+']</b>'+
+    '<span>Fabless revenue per wafer p</span>'+show(role==='f',fmt(P))+'<span>Foundry production cost c</span>'+show(role==='d',fmt(COST))+'<span>External contribution b</span>'+show(role==='d',fmt(B))+
     '<span>Actual signal this version</span><b>'+(role==='f'||VERS[ver].pub?'Visible':'Fabless only')+'</b><span>Actual demand and error</span><b>Hidden until settlement</b></div></section>';
 }
 function formulas(role){
   return '<details class="panel" id="det-formulas"'+detOpen('det-formulas',false)+'><summary>Accounting formulas</summary><div class="small" style="margin-top:8px">'+(role==='f'
-    ?'<p>Wafers purchased = min(D, K), or max(L, min(D, K)) under an accepted minimum purchase.</p><p>Profit = 240 × sales − 80 × wafers purchased − reservation fee F.</p><p>Sales = min(D, K). Wafers bought above demand have zero salvage value.</p>'
-    :'<p>Wafers produced = wafers the fabless purchases.</p><p>Profit = (80 − 40) × wafers produced + 20 × (280 − K) + reservation fee F received.</p><p>Reserved capacity that goes unused cannot be reassigned to external customers after demand is revealed.</p>')+'</div></details>';
+    ?'<p>Wafers purchased = min(D, K), or max(L, min(D, K)) under an accepted minimum purchase.</p><p>Profit = '+fmt(P)+' × sales − '+fmt(W)+' × wafers purchased − reservation fee F.</p><p>Sales = min(D, K). Wafers bought above demand have zero salvage value.</p>'
+    :'<p>Wafers produced = wafers the fabless purchases.</p><p>Profit = ('+fmt(W)+' − '+fmt(COST)+') × wafers produced + '+fmt(B)+' × ('+fmt(C)+' − K) + reservation fee F received.</p><p>Reserved capacity that goes unused cannot be reassigned to external customers after demand is revealed.</p>')+'</div></details>';
 }
 function whatIf(role,pairId){
   if(!G.calc)return '';
@@ -1361,7 +1508,7 @@ function historyCard(role,pairId){
     const mine=role==='f'?o.fProfit:o.dProfit;
     rows+='<tr><td>'+esc(s.practice?'Practice':({private:'Private',public:'Public',fee:'Fee',min:'Min. purchase'}[s.ver])+' R'+s.r)+'</td><td class="num">'+sgn(r.S)+'</td><td class="num r">'+r.D+'</td><td class="num r">'+o.R+'</td><td class="num r">'+o.K0+'</td><td class="num">'+(o.proposed?('K1 '+o.K1+' · '+fmt(o.X)+(o.acc?' ✓':' ✗')+(o.nOff>1?' · '+o.nOff+' offers':'')):'–')+'</td><td class="num r">'+o.K+'</td><td class="num r '+cls(mine)+'">'+fmt(mine)+'</td><td><button class="btn sm ghost" data-act="explain" data-pos="'+pos+'" aria-label="Explain this round">Why?</button></td></tr>';}
   const c=gameTotal(pairId);
-  return '<section class="panel"><h3>Round history'+(curStep()?': '+esc(gameName()):'')+'</h3>'+(rows?'<div class="scroll"><table class="data hist"><tr><th>Round</th><th>Signal</th><th class="r">Demand</th><th class="r">Req.</th><th class="r">K0</th><th>Proposal</th><th class="r">Final K</th><th class="r">Profit</th><th></th></tr>'+rows+'</table></div><p class="small">Total in this game: <b class="num">'+fmt(role==='f'?c.f:c.d)+'</b></p>':'<p class="muted small">Completed rounds of this game will appear here.</p>')+'</section>';
+  return '<section class="panel"><h3>Round history'+(curStep()?': '+esc(gameName()):'')+'</h3>'+(rows?'<div class="scroll"><table class="data hist"><tr><th>Round</th><th>Signal</th><th class="r">Demand</th><th class="r">Req.</th><th class="r">K0</th><th>Proposal</th><th class="r">Final K</th><th class="r">Profit</th><th></th></tr>'+rows+'</table></div><p class="small">Average in game: <b class="num">'+fmt(c.n?(role==='f'?c.f:c.d)/c.n:0)+'</b> per round</p>':'<p class="muted small">Completed rounds of this game will appear here.</p>')+'</section>';
 }
 function notesCard(){
   return '<details class="panel" id="det-notes"'+detOpen('det-notes',false)+'><summary>Private notes</summary><textarea id="notes" aria-label="Private notes" placeholder="Only you can see this. Saved in this browser.">'+esc(lsGet('fr_notes')||'')+'</textarea></details>';
@@ -1370,9 +1517,9 @@ function classResults(pairId){
   if(!(G.release&&G.release.profits))return '';
   if(!isInst){const b=board&&board.sid===G.sid?board.rows||[]:[];if(!b.length)return '';
     const rows=b.map(r=>'<tr'+(r.id===pairId?' style="font-weight:800"':'')+'><td>'+esc(r.name)+'</td><td style="white-space:normal">'+esc(r.teams)+'</td><td class="num r">'+fmt(r.f)+'</td><td class="num r">'+fmt(r.d)+'</td><td class="num r">'+fmt(r.t)+'</td></tr>').join('');
-    return '<section class="panel"><h3>Class results'+(board.game?': '+esc(board.game):'')+'</h3><div class="scroll"><table class="data"><tr><th>Supply chain</th><th>Teams</th><th class="r">Fabless</th><th class="r">Foundry</th><th class="r">Combined</th></tr>'+rows+'</table></div></section>';}
-  let rows='';for(const p of activePairs()){const c=gameTotal(p.id);rows+='<tr'+(p.id===pairId?' style="font-weight:800"':'')+'><td>'+esc(p.name)+'</td><td style="white-space:normal">'+esc(p.f.team)+' / '+esc(p.d.team)+'</td><td class="num r">'+fmt(c.f)+'</td><td class="num r">'+fmt(c.d)+'</td><td class="num r">'+fmt(c.t)+'</td></tr>';}
-  return '<section class="panel"><h3>Class results: '+esc(gameName())+'</h3><div class="scroll"><table class="data"><tr><th>Supply chain</th><th>Teams</th><th class="r">Fabless</th><th class="r">Foundry</th><th class="r">Combined</th></tr>'+rows+'</table></div></section>';
+    return '<section class="panel"><h3>Class results'+(board.game?': '+esc(board.game):'')+'</h3><div class="scroll"><table class="data"><tr><th>Supply chain</th><th>Teams</th><th class="r">Fabless</th><th class="r">Foundry</th><th class="r">Combined</th></tr>'+rows+'</table></div><p class="small muted" style="margin:6px 0 0">Average profit per round in this game.</p></section>';}
+  let rows='';for(const p of activePairs()){const c=gameTotal(p.id),k=c.n||1;rows+='<tr'+(p.id===pairId?' style="font-weight:800"':'')+'><td>'+esc(p.name)+'</td><td style="white-space:normal">'+esc(p.f.team)+' / '+esc(p.d.team)+'</td><td class="num r">'+fmt(c.f/k)+'</td><td class="num r">'+fmt(c.d/k)+'</td><td class="num r">'+fmt(c.t/k)+'</td></tr>';}
+  return '<section class="panel"><h3>Class results: '+esc(gameName())+'</h3><div class="scroll"><table class="data"><tr><th>Supply chain</th><th>Teams</th><th class="r">Fabless</th><th class="r">Foundry</th><th class="r">Combined</th></tr>'+rows+'</table></div><p class="small muted" style="margin:6px 0 0">Average profit per round in this game.</p></section>';
 }
 function teamView(pair,role){
   if(!G)return waitingView('The instructor has not created a session yet.');
@@ -1381,22 +1528,21 @@ function teamView(pair,role){
   if(G.stage==='debrief'||G.stage==='done'){
     const ps=curStep(),nvt=G.stage==='debrief'?nextVersionTarget():null,nx=nvt==null?null:plan[nvt];
     const summ=ps&&ps.practice?'<p>The practice round is complete. It did not count toward your score.</p><div class="why"><b>Before scoring starts</b>Check that you know what your company decides at each step, which numbers you can see, and how your profit is calculated.</div>':(ps?versionSummary(role,pair.id,ps.ver):'');
-    main='<section class="panel"><div class="roleband '+role+'"><span class="disp">'+(role==='f'?'Fabless':'Foundry')+'</span></div><h2>'+(G.stage==='done'?'Game complete':'Version complete: discussion time')+'</h2><p class="muted">'+(G.stage==='done'?'Thanks for playing. Your results are below.':'Your instructor will lead a debrief before the next version begins.')+'</p>'+summ+(ps&&!ps.practice?'<p>Total in this game: <b class="num">'+fmt(role==='f'?gameTotal(pair.id).f:gameTotal(pair.id).d)+'</b></p>':'')+'</section>';
-    return '<div class="grid2"><div class="col">'+main+classResults(pair.id)+historyCard(role,pair.id)+'</div><div class="col">'+infoSheet(role)+notesCard()+'</div></div>';
+    main='<section class="panel"><div class="roleband '+role+'"><span class="disp">'+(role==='f'?'Fabless':'Foundry')+'</span></div><h2>'+(G.stage==='done'?'Game complete':'Version complete: discussion time')+'</h2><p class="muted">'+(G.stage==='done'?'Thanks for playing. Your results are below.':'Your instructor will lead a debrief before the next version begins.')+'</p>'+summ+'</section>';
+    return '<div class="grid2"><div class="col">'+main+classResults(pair.id)+historyCard(role,pair.id)+'</div><div class="col">'+infoSheet(role)+'</div></div>';
   }
   const step=curStep();
   if(!step){
     main='<section class="panel"><div class="roleband '+role+'"><span class="disp">'+(role==='f'?'Fabless':'Foundry')+'</span></div><h2>Waiting to start</h2><p class="muted">The instructor will open the practice round. Read through what your company knows while you wait.</p></section>';
-    return '<div class="grid2"><div class="col">'+main+'</div><div class="col">'+infoSheet(role)+notesCard()+'</div></div>';
+    return '<div class="grid2"><div class="col">'+main+'</div><div class="col">'+infoSheet(role)+'</div></div>';
   }
   return '<div class="grid2"><div class="col">'+decisionCard(role,pair.id,canAct)+'<div id="whatwrap">'+whatIf(role,pair.id)+'</div>'+classResults(pair.id)+historyCard(role,pair.id)+'</div>'+
-    '<div class="col">'+visPanels(role,pair.id)+infoSheet(role)+notesCard()+'</div></div>';
+    '<div class="col">'+visPanels(role,pair.id)+infoSheet(role)+'</div></div>';
 }
 
 /* ---------- instructor console ---------- */
-const BENCH={private:{ind:[17400,7150,24550]},public:{ind:[19200,7600,26800],eff:[22272,7088,29360]},fee:{eff:[22272,7088,29360],ind:[19200,7600,26800]},min:{ind:[19200,7600,26800],eff:[22272,7088,29360]}};
 function consoleView(){
-  if(!G)return setupView();
+  if(!G||setupFlow)return setupFlow==='settings'?setupView():paramsView();
   const step=curStep(),st=G.stage,s=stageStatus();
   const ju=standalone&&NS?joinUrl(NS):null;
   const classBox=standalone&&NS?'<div class="classbox"><div><span class="small muted">Class code</span><div class="code num">'+esc(NS)+'</div></div><div class="small">'+(ju?'Students join at <b>'+esc(ju)+'</b>':'Students open this game and enter the code.')+'<br><span class="muted">'+(Store.online?'Online: students can join from their own devices.':'Browser-only mode: teams must use this browser, one tab each.')+'</span></div><button class="btn sm ghost" data-act="copycode">Copy '+(ju?'join link':'code')+'</button></div>':'';
@@ -1473,7 +1619,7 @@ function consoleGuide(){
   const g=GUIDE[step.ver];
   return '<details class="panel guide" id="det-cguide-'+step.ver+'"'+detOpen('det-cguide-'+step.ver,true)+'><summary>Now playing: '+esc(g.title)+'</summary><p><b>'+g.short+'</b> '+g.newv+'</p>'+
     '<ol class="small">'+g.steps.map(s=>'<li>'+s+'</li>').join('')+'</ol><p class="small"><b>Who pays what:</b> '+g.pay+'</p><p class="small"><b>Key idea for the debrief:</b> '+g.lesson+'</p>'+
-    '<button class="btn sm ghost" data-act="guide">Compare all four versions</button></details>';
+    (isInst&&view.tab==='console'?'<button class="btn sm ghost" data-act="guide">Compare all four versions</button>':'')+'</details>';
 }
 function csvEscape(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
 function buildCsv(){
@@ -1553,7 +1699,7 @@ function openNewSession(seedVal,repVal){
     '<p class="small muted" style="margin:4px 0 0">The same seed and number of rounds always produce the same signals and demand, so you can rerun a session or give two sections identical scenarios.</p>'+
     '<label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="ns-rep" '+(repVal?'checked':'')+'> Use the same demand sequence in every version</label>'+
     '<p class="small muted" style="margin:4px 0 0">When checked, round 1 of every version has the same signal and demand, round 2 the same, and so on. Teams can then compare versions directly. Unchecked, every round is an independent draw.</p>',
-      [{label:'Cancel',cls:'ghost'},{label:'Start new session',cls:'bad',fn:async(o)=>{
+      [{label:'Cancel',cls:'ghost'},{label:'Change parameters',cls:'ghost',fn:()=>{setupFlow='params';paramDraft=normParams(G.params);view.tab='console';rq();window.scrollTo(0,0);}},{label:'Start new session',cls:'bad',fn:async(o)=>{
         const n=Math.max(1,Math.min(8,Number(o.querySelector('#ns-n').value)||G.n)),t=Math.max(0,Number(o.querySelector('#ns-t').value)||0);
         const ok=await createSession(n,G.pc,t,o.querySelector('#ns-seed').value,o.querySelector('#ns-rep').checked);if(ok!==false){view.tab='console';draftKey='';autoFired='';toast('New session started.');}}}]);
 }
@@ -1561,6 +1707,7 @@ function openNewSession(seedVal,repVal){
 document.addEventListener('input',e=>{
   const t=e.target;
   if(t.id==='notes'){lsSet('fr_notes',t.value);return;}
+  if(t.dataset&&t.dataset.p&&paramDraft){paramDraft[t.dataset.p]=t.value;refreshParamPreview();return;}
   if(t.dataset&&t.dataset.d){
     const k=t.dataset.d;let v=t.value===''?NaN:Number(t.value);draft[k]=v;
     document.querySelectorAll('[data-d="'+k+'"]').forEach(el=>{if(el!==t&&!isNaN(v))el.value=Math.min(Number(el.max||1e9),Math.max(Number(el.min||0),v));});
@@ -1588,11 +1735,19 @@ document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act,c=curCtx(),sid=G&&G.sid;
   const mk=(kind,data)=>save('set','pairs/'+c.pairId+'/moves/'+sid+'_'+G.pos+'_'+kind+'_a'+attNow(),Object.assign({sid,pos:G.pos,pair:c.pairId,kind,att:attNow(),ts:Date.now()},data));
+  if(a==='expcalc'){openExpCalc(b.dataset);return;}
   if(a==='vis'){visMode=b.dataset.v;lsSet('fr_vis',visMode);rq();}
   else if(a==='tab'){view.tab=b.dataset.v;rq();}
   else if(a==='role'){view.role=b.dataset.v;draftKey='';rq();}
   else if(a==='open'){view.tab='team';view.pair=b.dataset.pair;view.role=b.dataset.role;draftKey='';rq();window.scrollTo(0,0);}
-  else if(a==='create'){const n=Math.max(1,Math.min(8,Number($('#s-n').value)||4)),pc=Math.max(0,Math.min(40,Number($('#s-pc').value)||0)),t=Math.max(0,Number($('#s-t').value)||0);await createSession(n,pc,t,$('#s-seed').value,$('#s-rep').checked);}
+  else if(a==='create'){const n=Math.max(1,Math.min(8,Number($('#s-n').value)||4)),pc=Math.max(0,Math.min(40,Number($('#s-pc').value)||0)),t=Math.max(0,Number($('#s-t').value)||0);
+    if(validateParams(paramDraft||{}).err.length){setupFlow='params';rq();toast('Fix the game parameters first.');return;}
+    const hadG=!!G,ok=await createSession(n,pc,t,$('#s-seed').value,$('#s-rep').checked,normParams(paramDraft));
+    if(ok!==false){setupFlow=null;paramDraft=null;view.tab='console';draftKey='';autoFired='';if(hadG)toast('New session started.');rq();window.scrollTo(0,0);}}
+  else if(a==='pp-next'){const v=validateParams(paramDraft);if(v.err.length){refreshParamPreview();toast('Fix the highlighted parameters first.');return;}setupFlow='settings';rq();window.scrollTo(0,0);}
+  else if(a==='pp-back'){setupFlow='params';rq();window.scrollTo(0,0);}
+  else if(a==='pp-reset'){paramDraft=normParams(null);rq();}
+  else if(a==='pp-cancel'){setupFlow=null;paramDraft=null;rq();}
   else if(a==='adv'){if(G&&G.stage==='debrief')confirmMoveOn();else await advance();}
   else if(a==='more')await addRound();
   else if(a==='autojoin')await autoJoin($('#teamname')&&$('#teamname').value);
@@ -1635,8 +1790,9 @@ document.addEventListener('click',async e=>{
   else if(a==='newsess')openNewSession();
   else if(a==='title'){showTitle=true;rq();}
   else if(a==='title-enter'){showTitle=false;rq();window.scrollTo(0,0);}
-  else if(a==='title-new'){showTitle=false;if(G){view.tab='console';rq();openNewSession();}else rq();window.scrollTo(0,0);}
+  else if(a==='title-new'){showTitle=false;view.tab='console';setupFlow='params';paramDraft=normParams(G&&G.params);rq();window.scrollTo(0,0);}
 });
+applyParams(null);
 init();
 setTimeout(()=>{if(!ready&&!connError){connError={step:'start',code:'timeout',message:'The game did not finish starting.'};ready=true;rq();}},40000);
 </script>

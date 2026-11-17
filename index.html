@@ -1,0 +1,1644 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fab-Rush</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E6EAF1; --panel:#F7F9FC; --panel2:#FFFFFF; --ink:#0D1A2B; --ink2:#47576D; --line:#CBD3DF; --grid:rgba(13,26,43,.045);
+  --fab:#4B3FD8; --fabink:#FFFFFF; --fabsoft:#E3E0FB;
+  --fdy:#E8A010; --fdyink:#241800; --fdysoft:#FBEBC8;
+  --good:#0E8A5F; --bad:#C8363D; --sig:#12958D;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0A1220; --panel:#111C2E; --panel2:#16243A; --ink:#E7EDF7; --ink2:#9FB0C6; --line:#25354D; --grid:rgba(231,237,247,.04);
+  --fab:#8F88FF; --fabink:#0B0830; --fabsoft:#262160; --fdy:#F2B134; --fdyink:#241800; --fdysoft:#3A2B08; --good:#38C690; --bad:#FF7A80; --sig:#3CC8BE;}}
+:root[data-theme="dark"]{
+  --bg:#0A1220; --panel:#111C2E; --panel2:#16243A; --ink:#E7EDF7; --ink2:#9FB0C6; --line:#25354D; --grid:rgba(231,237,247,.04);
+  --fab:#8F88FF; --fabink:#0B0830; --fabsoft:#262160; --fdy:#F2B134; --fdyink:#241800; --fdysoft:#3A2B08; --good:#38C690; --bad:#FF7A80; --sig:#3CC8BE;}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Hanken Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:30px 22px;min-height:100vh}
+h1,h2,h3{margin:0;font-weight:700}
+.disp{font-family:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;font-weight:800;letter-spacing:.01em;text-transform:uppercase}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--sig);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px;margin:0 auto;padding:14px 16px 60px}
+/* top bar */
+.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 0 14px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .mark{width:40px;height:40px}
+.brand .word{font-size:30px;line-height:1}
+.status{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);font-size:13px;font-weight:600;white-space:nowrap}
+.chip.f{background:var(--fab);color:var(--fabink);border-color:transparent}
+.chip.d{background:var(--fdy);color:var(--fdyink);border-color:transparent}
+.chip.live{border-color:var(--sig);color:var(--sig)}
+.timer{font-variant-numeric:tabular-nums;font-weight:700}
+.timer.late{color:var(--bad)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel2)}
+.seg button{border:0;background:none;color:var(--ink2);padding:6px 12px;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+/* panels */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px 18px}
+.panel+.panel{margin-top:14px}
+.panel h2{font-size:18px;margin-bottom:6px}
+.panel h3{font-size:15px;margin-bottom:4px}
+.muted{color:var(--ink2)}
+.small{font-size:13px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;align-items:start}
+.col>.panel+.panel{margin-top:14px}
+@media(max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.roleband{display:flex;align-items:center;gap:12px;padding:12px 18px;border-radius:6px 6px 0 0;margin:-16px -18px 14px}
+.roleband.f{background:var(--fab);color:var(--fabink)}
+.roleband.d{background:var(--fdy);color:var(--fdyink)}
+.roleband .disp{font-size:26px;line-height:1}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.step{padding:3px 10px;border-radius:99px;border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--ink2);background:var(--panel2)}
+.step.done{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.step.now{border-color:var(--sig);color:var(--sig);box-shadow:0 0 0 2px color-mix(in srgb,var(--sig) 25%,transparent)}
+.btn{border:0;border-radius:7px;padding:10px 18px;font-weight:700;background:var(--ink);color:var(--bg)}
+.btn.f{background:var(--fab);color:var(--fabink)}
+.btn.d{background:var(--fdy);color:var(--fdyink)}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+.btn.bad{background:var(--bad);color:#fff}
+.btn.sm{padding:5px 11px;font-size:13px}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+label.fld{display:block;font-weight:600;margin:12px 0 4px}
+.ctl{display:flex;gap:10px;align-items:center}
+input[type=range]{flex:1;min-width:120px;accent-color:var(--ink)}
+input[type=number],input[type=text],input[type=password],select{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--ink)}
+input[type=number]{width:96px}
+.msg{min-height:20px;font-size:13.5px;margin-top:6px}
+.msg.err{color:var(--bad)}
+.stmt{width:100%;border-collapse:collapse}
+.stmt td,.stmt th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.stmt td:last-child,.stmt th:last-child.r{text-align:right}
+.stmt tr.tot td{font-weight:800;font-size:17px;border-bottom:2px solid var(--ink)}
+.stmt .sub td{color:var(--ink2);font-size:13px}
+.pos{color:var(--good)}.neg{color:var(--bad)}
+.big{font-family:"Big Shoulders Display",sans-serif;font-weight:800;font-size:44px;line-height:1}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12.5px;color:var(--ink2)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-2px}
+svg text{font-family:"Hanken Grotesk",sans-serif}
+.t-free{fill:var(--line)}.t-res{fill:var(--fab)}.t-sold{fill:var(--fab)}.t-ext{fill:var(--fdy)}
+.t-excess{fill:url(#hatch);stroke:var(--bad);stroke-width:1.2}
+.t-unused{fill:none;stroke:var(--fab);stroke-width:1.6}
+.t-inc{fill:var(--fabsoft);stroke:var(--fab);stroke-width:1.4;stroke-dasharray:3 2}
+.t-req{fill:var(--fabsoft);stroke:var(--fab);stroke-width:1.6}
+table.data{width:100%;border-collapse:collapse;font-size:14px}
+table.data th,table.data td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+table.data th{font-size:12.5px;color:var(--ink2);font-weight:600}
+table.data td.r,table.data th.r{text-align:right}
+.scroll{overflow-x:auto}
+details{margin-top:12px}summary{cursor:pointer;font-weight:700}
+textarea{width:100%;min-height:74px;font:inherit;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:var(--ink)}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;font-weight:700;background:var(--line);color:var(--ink)}
+.pill.ok{background:var(--good);color:#fff}.pill.wait{background:var(--fdysoft);color:var(--ink)}
+.pill.f{background:var(--fab);color:var(--fabink)}.pill.d{background:var(--fdy);color:var(--fdyink)}
+/* hero / join */
+.hero{display:grid;grid-template-columns:minmax(220px,360px) 1fr;gap:34px;align-items:center;padding:20px 0 26px}
+@media(max-width:760px){.hero{grid-template-columns:1fr;text-align:center}.hero .wafer{max-width:260px;margin:0 auto}}
+.hero h1{font-size:clamp(54px,9vw,104px);line-height:.88}
+.hero p{max-width:46ch;font-size:17px}
+.bays{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:14px}
+.bay{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:12px}
+.bay h3{margin-bottom:8px}
+.seat{display:flex;width:100%;justify-content:space-between;align-items:center;margin-top:6px;padding:8px 10px;border-radius:6px;border:1.5px solid;background:transparent;font-weight:700;text-align:left}
+.seat.f{border-color:var(--fab);color:var(--fab)}.seat.d{border-color:var(--fdy);color:var(--ink)}
+.seat[disabled]{opacity:.55;cursor:not-allowed}
+.die{transform-box:fill-box;transform-origin:center}
+.anim .die{animation:dieIn .5s both cubic-bezier(.2,.8,.2,1)}
+@keyframes dieIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.anim .die{animation:none}}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:600;z-index:9;max-width:90vw}
+.banner{background:var(--fdysoft);border:1px solid var(--fdy);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:13.5px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px}
+.kv .hid{color:var(--ink2);font-style:italic}
+.toggles{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:12px}
+.toggles label{display:flex;align-items:center;gap:7px;font-weight:600}
+.counter{font-size:15px}
+
+/* ---- colour pass ---- */
+:root{--fab2:#9B5CF6;--fdy2:#FF7A3D;--pink:#F0488F;--glow1:rgba(91,63,255,.20);--glow2:rgba(25,195,177,.18);--glow3:rgba(255,176,32,.22);--tpos:rgba(14,138,95,.13);--tneg:rgba(200,54,61,.12)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--fab2:#D6A0FF;--fdy2:#FF9A5C;--pink:#FF7DB4;--glow1:rgba(143,136,255,.22);--glow2:rgba(60,200,190,.14);--glow3:rgba(242,177,52,.14);--tpos:rgba(56,198,144,.16);--tneg:rgba(255,122,128,.16)}}
+:root[data-theme="dark"]{--fab2:#D6A0FF;--fdy2:#FF9A5C;--pink:#FF7DB4;--glow1:rgba(143,136,255,.22);--glow2:rgba(60,200,190,.14);--glow3:rgba(242,177,52,.14);--tpos:rgba(56,198,144,.16);--tneg:rgba(255,122,128,.16)}
+body{background-image:radial-gradient(900px 520px at 6% -6%,var(--glow1),transparent 62%),radial-gradient(820px 520px at 102% 0%,var(--glow3),transparent 58%),radial-gradient(900px 620px at 55% 112%,var(--glow2),transparent 62%),linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:auto,auto,auto,30px 22px,30px 22px;background-repeat:no-repeat,no-repeat,no-repeat,repeat,repeat;background-attachment:fixed,fixed,fixed,scroll,scroll}
+.hero h1,.brand .word{background:linear-gradient(95deg,var(--fab) 0%,var(--pink) 52%,var(--fdy) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+.hero .wafer{filter:drop-shadow(0 14px 34px var(--glow1))}
+.roleband.f{background:linear-gradient(100deg,var(--fab),var(--fab2))}
+.roleband.d{background:linear-gradient(100deg,var(--fdy),var(--fdy2))}
+.btn.f,.chip.f{background:linear-gradient(100deg,var(--fab),var(--fab2))}
+.btn.d,.chip.d{background:linear-gradient(100deg,var(--fdy),var(--fdy2))}
+.btn:not(.ghost):not([disabled]):hover{filter:brightness(1.08)}
+.panel{box-shadow:0 1px 0 var(--line),0 8px 24px -16px var(--glow1)}
+.panel>h3::before,.panel>h2::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;background:linear-gradient(135deg,var(--fab),var(--pink),var(--fdy));margin-right:9px;vertical-align:1px}
+.step.done{background:linear-gradient(90deg,var(--sig),var(--fab));border-color:transparent;color:#fff}
+.step.now{background:var(--panel2);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 2px color-mix(in srgb,var(--sig) 25%,transparent)}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--sig) 10%,transparent)}}
+.kpis{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 14px}
+.kpi{flex:1;min-width:140px;padding:12px 16px;border-radius:10px;background:var(--panel2);border:1px solid var(--line)}
+.kpi.pos{background:var(--tpos);border-color:transparent}.kpi.neg{background:var(--tneg);border-color:transparent}
+.kpi .big{display:block}
+.seat.f:not([disabled]):hover{background:linear-gradient(100deg,var(--fab),var(--fab2));color:var(--fabink)}
+.seat.d:not([disabled]):hover{background:linear-gradient(100deg,var(--fdy),var(--fdy2));color:var(--fdyink)}
+.bay{border-top:4px solid;border-image:linear-gradient(90deg,var(--fab),var(--pink),var(--fdy)) 1}
+.t-sold,.t-res{fill:url(#gF)}.t-ext{fill:url(#gD)}
+.rv{animation:tileIn .45s both cubic-bezier(.2,.8,.2,1);transform-box:fill-box;transform-origin:center}
+@keyframes tileIn{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.rv,.step.now{animation:none}}
+.pill.flag{background:var(--tneg);color:var(--bad)}
+.ver-strip{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.ver-strip span{padding:3px 12px;border-radius:99px;font-weight:700;font-size:13px;border:1px solid var(--line);background:var(--panel2);color:var(--ink2)}
+.ver-strip span.on{background:linear-gradient(100deg,var(--fab),var(--pink));color:#fff;border-color:transparent}
+.ver-strip span.past{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+.wf-lab{font-size:17px;font-weight:700;paint-order:stroke;stroke:var(--panel);stroke-width:4px;stroke-linejoin:round}
+.wf-tick{font-size:14px;fill:var(--ink2)}
+.wf-hint{font-size:12.5px;color:var(--ink2);margin:0 0 4px}
+.cardhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
+.cardhead h3{margin:0}
+
+.ov{position:fixed;inset:0;background:rgba(8,14,26,.55);display:grid;place-items:center;z-index:20;padding:16px}
+.dlg{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:20px 22px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.dlg h3{font-size:20px;margin-bottom:8px}
+.dlg .row{margin-top:16px;justify-content:flex-end}
+.dlg label{display:block;font-weight:600;margin-top:10px}
+
+button.brand{background:none;border:0;padding:0;color:inherit;cursor:pointer;text-align:left}
+.title{min-height:calc(100vh - 60px);display:grid;place-items:center;text-align:center;padding:24px 0}
+.title .inner{display:flex;flex-direction:column;align-items:center;gap:6px;max-width:760px}
+.title .wafer{width:min(250px,32vh,60vw);filter:drop-shadow(0 22px 50px var(--glow1))}
+.title h1{font-size:clamp(52px,min(12.5vw,15vh),150px);white-space:nowrap;line-height:.9;margin:8px 0 0;background:linear-gradient(95deg,var(--fab) 0%,var(--pink) 50%,var(--fdy) 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:titleIn .9s .75s both cubic-bezier(.2,.8,.2,1)}
+.title .tag{font-size:clamp(17px,2.4vw,22px);max-width:34ch;margin:6px 0 0;animation:titleIn .9s 1s both}
+.title .facts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:16px 0 4px;animation:titleIn .9s 1.15s both}
+.title .facts span{padding:5px 14px;border-radius:99px;font-weight:700;font-size:14px;background:var(--panel2);border:1px solid var(--line)}
+.title .facts .f{background:linear-gradient(100deg,var(--fab),var(--fab2));color:var(--fabink);border-color:transparent}
+.title .facts .d{background:linear-gradient(100deg,var(--fdy),var(--fdy2));color:var(--fdyink);border-color:transparent}
+.title .go{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:18px;animation:titleIn .9s 1.3s both}
+.btn.xl{padding:15px 34px;font-size:19px;border-radius:10px}
+.btn.xl.main{background:linear-gradient(100deg,var(--fab),var(--pink) 60%,var(--fdy2));color:#fff}
+@keyframes titleIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.title h1,.title .tag,.title .facts,.title .go{animation:none}}
+
+/* ---- explanations, guide, seed ---- */
+.why{margin:10px 0 4px;padding:9px 12px;border-left:4px solid var(--sig);background:color-mix(in srgb,var(--sig) 9%,transparent);border-radius:0 6px 6px 0;font-size:13.5px}
+.why b{display:block;margin-bottom:2px}
+.ex{margin-top:14px}
+.ex h3{font-size:16px;margin-bottom:6px}
+.exi{padding:8px 0 8px 12px;border-left:3px solid var(--line);margin:6px 0}
+.exi>b{display:block;font-size:13.5px}
+.exi p{margin:2px 0 0;font-size:14px;max-width:72ch}
+.exi.good{border-color:var(--good)}.exi.bad{border-color:var(--bad)}.exi.sig{border-color:var(--sig)}.exi.fab{border-color:var(--fab)}.exi.fdy{border-color:var(--fdy)}
+.guide p{margin:6px 0;max-width:70ch}
+.guide ol{margin:6px 0 6px 20px;padding:0}
+.guide ol li{margin:2px 0}
+.gtable{width:100%;border-collapse:collapse;font-size:13.5px}
+.gtable th,.gtable td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.gtable th{font-size:12.5px;color:var(--ink2);font-weight:600}
+.dlg.wide{max-width:900px;max-height:88vh;overflow:auto}
+.seedbox{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 10px;border:1px dashed var(--ink2);border-radius:8px;font-size:13.5px}
+.seedbox code{font-size:15px;font-weight:700;letter-spacing:.04em}
+.newv{display:inline-block;padding:1px 8px;border-radius:99px;font-size:12px;font-weight:700;background:var(--sig);color:#fff;margin-left:6px;vertical-align:2px}
+.botbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:8px 12px;border-radius:6px;background:var(--fabsoft);font-size:13.5px}
+.chipbtn{cursor:pointer;color:var(--ink)}
+table.hist th,table.hist td{padding:6px 5px;font-size:13px}
+.chipbtn:hover{border-color:var(--ink2)}
+.qs{margin:6px 0 0 20px;padding:0}.qs li{margin:3px 0}
+
+/* class code box */
+.classbox{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:12px 16px;margin:0 0 14px;border-radius:8px;background:var(--fabsoft);border:1px solid var(--line)}
+.classbox .code{font-size:30px;font-weight:800;letter-spacing:.16em;line-height:1.1}
+/* negotiation thread */
+.thread{list-style:none;margin:12px 0;padding:0}
+.thread li{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;padding:8px 12px;margin:5px 0;border-radius:6px;background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--fab)}
+.thread li.td{border-left-color:var(--fdy)}
+.thread li .num{margin-left:auto;font-weight:700}
+.cform{margin-top:16px;padding:12px 14px;border:1px dashed var(--ink2);border-radius:8px}
+.cform h3{font-size:15px;margin:0 0 2px}
+/* version switcher, original style */
+.vswitch{margin:10px 0 12px}
+.vs-lab{display:block;font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:6px}
+.vs-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media(max-width:760px){.vs-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.vs{display:flex;align-items:center;gap:9px;text-align:left;padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font:inherit}
+.vs:hover{border-color:var(--ink2)}
+.vs-i{flex:none;width:26px;height:26px;border-radius:6px;display:grid;place-items:center;font-weight:800;font-size:13px;background:var(--line);color:var(--ink)}
+.vs-t{flex:1;min-width:0;line-height:1.25}.vs-t b{display:block;font-size:13.5px}.vs-t small{color:var(--ink2);font-size:12px}
+.vs-c{font-size:12px;font-weight:700;color:var(--ink2)}
+.vs.on{border-color:transparent;background:linear-gradient(100deg,var(--fab),var(--pink));color:#fff}
+.vs.on .vs-t small,.vs.on .vs-c{color:rgba(255,255,255,.85)}.vs.on .vs-i{background:rgba(255,255,255,.25);color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+/* =====================================================================
+   ONLINE PLAY SETUP
+   To let students play from their own devices, paste your Firebase web
+   config between the braces below (see SETUP.md). Leave it as null to run
+   in browser-only mode (everyone on one computer, one tab per team).
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD7gHtx5N6s12gJyRlRsiRuSNcXqyORSHA",
+  authDomain: "fab-rush-game.firebaseapp.com",
+  projectId: "fab-rush-game",
+  storageBucket: "fab-rush-game.firebasestorage.app",
+  messagingSenderId: "1082122720020",
+  appId: "1:1082122720020:web:5ea648454b30e6e91c2801"
+};
+//#LOGIC-START
+const C=280,P=240,W=80,COST=40,B=20,MU=140;
+const VERS={
+  private:{name:'Base game',sub:'Private demand signal',pub:false,ext:null},
+  public:{name:'Base game',sub:'Public demand signal',pub:true,ext:null},
+  fee:{name:'Reservation fee',sub:'Public demand signal',pub:true,ext:'fee'},
+  min:{name:'Minimum purchase',sub:'Public demand signal',pub:true,ext:'min'}
+};
+const VORDER=['private','public','fee','min'];
+const BASE_STEPS=['The fabless sees the signal and requests capacity R (0 to 280).','The foundry protects a guarantee K0 between 0 and R. The rest of the 280 goes to external customers.','Demand is revealed and both profits are settled with K = K0.'];
+const EXT_STEPS=x=>['The fabless sees the signal and requests capacity R.','The foundry protects K0 ≤ R.',
+  x==='fee'?'The fabless makes an opening offer: “I’ll pay a reservation fee F if you raise my guarantee from K0 to K1.” Or it keeps the original plan.':'The fabless makes an opening offer: “I’ll buy at least L wafers if you raise my guarantee from K0 to K1.” Or it keeps the original plan.',
+  'The foundry accepts, rejects, or makes a counter-offer with its own K1 and '+(x==='fee'?'fee':'minimum')+'. The fabless can answer the same way. Offers alternate up to the limit your instructor sets (normally 3 in total), and the final offer can only be accepted or rejected.',
+  x==='fee'?'If an offer is accepted, K = K1 and that fee F is paid. If nobody agrees, the original plan stands (K = K0, no fee).':'If an offer is accepted, K = K1 with that minimum purchase L. If nobody agrees, the original plan stands (K = K0, no commitment).',
+  'Demand is revealed and both profits are settled.'];
+const GUIDE={
+  private:{title:'Base game with a private signal',short:'Only the fabless sees the demand signal.',
+    see:{f:'You see the signal (low −60 or high +60) before you request.',d:'You do not see the signal. The only clue you get is the fabless’s request R.'},
+    steps:BASE_STEPS,pay:'The fabless buys min(D, K) wafers at 80 each. Nothing else is paid.',
+    newv:'This is the starting point of the game.',
+    lesson:'Requesting is free, so a large request might mean strong demand or just wishful asking. The foundry has to decide how much to trust it.',
+    think:{f:'How large a request helps you, and how will the foundry read it?',d:'What does this request tell you about the signal, and can you trust it?'}},
+  public:{title:'Base game with a public signal',short:'Both companies see the same signal.',
+    see:{f:'You see the signal, and the foundry now sees it too.',d:'You now see the same signal as the fabless, verified by the instructor.'},
+    steps:BASE_STEPS,pay:'The fabless buys min(D, K) wafers at 80 each. Nothing else is paid.',
+    newv:'Only one thing changes from the private game: the foundry sees the actual signal. Prices, capacity and rules are identical.',
+    lesson:'Verified information lets the foundry match capacity to the forecast instead of guessing. Compare your results with the private rounds.',
+    think:{f:'Does your request still matter now that the foundry knows the signal?',d:'Given the signal, how much capacity is worth protecting?'}},
+  fee:{title:'Reservation-fee contract',short:'The fabless can pay a fixed fee for a larger guarantee.',
+    see:{f:'Both companies see the signal, as in the public base game.',d:'Both companies see the signal, as in the public base game.'},
+    steps:EXT_STEPS('fee'),pay:'The fabless buys min(D, K) wafers at 80 each, plus the fee F if the deal was accepted. The fee is paid even if the extra capacity goes unused.',
+    newv:'Adds a negotiation after the base allocation: the fabless makes an opening offer, and the two companies can trade counter-offers until one accepts or rejects. Everything else matches the public base game.',
+    lesson:'The fee compensates the foundry for the external business it gives up. It moves money between the companies but does not change how many wafers are made or sold, so it never changes combined profit.',
+    think:{f:'What is the extra capacity worth to you, and what is the least the foundry will accept?',d:'Does the fee cover the external contribution you give up on the extra wafers?'}},
+  min:{title:'Minimum-purchase contract',short:'The fabless can promise to buy at least L wafers for a larger guarantee.',
+    see:{f:'Both companies see the signal, as in the public base game.',d:'Both companies see the signal, as in the public base game.'},
+    steps:EXT_STEPS('min'),pay:'The fabless buys max(L, min(D, K)) wafers at 80 each. If demand comes in below L, it still pays for L wafers, and the unsold ones are worth nothing.',
+    newv:'Same structure as the reservation-fee version, but the fabless offers a purchase commitment instead of cash. There is no fee in this version.',
+    lesson:'A commitment protects the foundry when demand is weak. But wafers bought above demand cost production with no sale, so a commitment that binds shrinks combined profit.',
+    think:{f:'How large a commitment can you afford if demand comes in low?',d:'How likely is demand to fall below L, and is that protection worth the external business you give up?'}}
+};
+const DEBRIEF_Q={
+  practice:['Does every team understand what it decides and when?','Which numbers on the dashboard does each company see, and which are hidden?'],
+  private:['Foundry teams: what did you infer from the request R? Did you trust it?','Fabless teams: how did you choose your request? Did you ask for more than you expected to need?','Benchmark: a foundry that ignores R and uses the prior median protects min(R, 140).'],
+  public:['How did seeing the signal change foundry allocations (benchmark: 80 if low, 200 if high)?','Sharing the signal raises expected combined profit from 24,550 to 26,800. Who gained?','An efficient plan (144 if low, 264 if high) would add 2,560 more, but costs the foundry 512. What could the fabless offer to make it worthwhile?'],
+  fee:['How did counter-offers change the fee teams finally agreed on? Who conceded more?','Why would the foundry reject the capacity increase without a fee?','Which fees make both companies better off? (Benchmark: 512 ≤ F ≤ 3,072 for the efficient increase.)','Why does changing the fee leave combined profit unchanged?','How did teams divide the additional expected profit?'],
+  min:['How did counter-offers change the minimum purchase teams agreed on?','Why would the foundry reject a minimum of 0 (or 120 under the high signal) despite a positive combined gain?','Why are mid-sized commitments attractive to both companies?','Why does a very large commitment hurt the fabless?','Why does combined profit fall as the minimum purchase rises while capacity stays fixed?']
+};
+function buildPlan(n,extra){const p=[{ver:'private',r:0,practice:true}];for(const v of VORDER)for(let r=1;r<=n;r++)p.push({ver:v,r});
+  const list=Array.isArray(extra)?extra:[];const cnt={};for(const v of list){if(!VERS[v])continue;cnt[v]=(cnt[v]||0)+1;p.push({ver:v,r:n+cnt[v],extra:true});}return p;}
+const lo=S=>S<0?0:120;
+function mS(K,S){const l=lo(S),u=l+160;if(K<=l)return K;if(K>=u)return l+80;return K-(K-l)**2/320;}
+function eS(L,S){const l=lo(S),u=l+160;if(L<=l)return 0;if(L>=u)return L-(l+80);return (L-l)**2/320;}
+function econ(K,F,L,D){
+  const sold=Math.min(D,K),purchased=L>0?Math.max(L,sold):sold;
+  return {sold,purchased,unmet:D-sold,excess:purchased-sold,unused:K-purchased,
+    fProfit:P*sold-W*purchased-F,dProfit:(W-COST)*purchased+B*(C-K)+F};
+}
+function expProfit(role,K,F,L,S){
+  const f=s=>{const m=mS(K,s),e=L>0?eS(L,s):0;
+    return role==='f'?P*m-W*(m+e)-F:(W-COST)*(m+e)+B*(C-K)+F;};
+  return S===null||S===undefined?(f(-60)+f(60))/2:f(S);
+}
+// Negotiation: offers alternate fabless -> foundry -> fabless. The final decision is stored in mv.resp.
+function offersOf(mv){const o=[];if(mv&&mv.prop&&!mv.prop.skip){o.push(Object.assign({},mv.prop,{by:'f'}));if(mv.o2){o.push(Object.assign({},mv.o2,{by:'d'}));if(mv.o3)o.push(Object.assign({},mv.o3,{by:'f'}));}}return o;}
+function negTurn(mv){const o=offersOf(mv);if(!o.length||mv.resp)return null;return o[o.length-1].by==='f'?'d':'f';}
+function outcome(ver,mv,D){
+  const ext=VERS[ver].ext,miss=[];
+  let R=0,K0=0;
+  if(mv.req)R=mv.req.R;else miss.push('request');
+  if(mv.alloc)K0=Math.min(mv.alloc.K0,R);else miss.push('allocation');
+  let K=K0,F=0,L=0,acc=false,proposed=false,K1=null,X=null,nOff=0,accOn=null,accBy=null,finBy=null,endBy=null;
+  if(ext&&mv.prop&&!mv.prop.skip){
+    proposed=true;const offs=offersOf(mv);nOff=offs.length;let fin=offs[nOff-1];
+    if(mv.resp){const ix=Math.min(nOff,Math.max(1,Number(mv.resp.on)||nOff));fin=offs[ix-1];endBy=mv.resp.by||(fin.by==='f'?'d':'f');
+      if(mv.resp.accept){acc=true;accOn=ix;accBy=endBy;}}
+    else miss.push('response');
+    K1=fin.K1;X=fin.X;finBy=fin.by;
+    if(acc){K=K1;if(ext==='fee')F=X;else L=X;}
+  }
+  const o=econ(K,F,L,D),b=econ(K0,0,0,D);
+  return Object.assign(o,{R,K0,K,F,L,acc,proposed,K1,X,D,miss,base:b,nOff,accOn,accBy,finBy,endBy});
+}
+// Seeded randomness: the same seed (and settings) always yields the same signals and demand.
+function hashStr(str){let h1=0xdeadbeef^str.length,h2=0x41c6ce57^str.length;
+  for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return (h1^h2)>>>0;}
+function rngFrom(key){let a=hashStr(String(key));return function(){a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296;};}
+function newSeed(){return String(100000+Math.floor(Math.random()*900000));}
+function scenKey(step,seed,repeat){return seed+'|'+(step.practice?'practice':(repeat?'round-'+step.r:step.ver+'-'+step.r));}
+function genScen(plan,seed,repeat){return plan.map(s=>{const r=rngFrom(scenKey(s,seed,repeat));return {S:r()<.5?-60:60,eps:Math.floor(r()*161)-80};});}
+function checkReq(R){return Number.isInteger(R)&&R>=0&&R<=C?'':'Enter a whole number from 0 to '+C+'.';}
+function checkAlloc(K0,R){return Number.isInteger(K0)&&K0>=0&&K0<=R?'':'Allocation must be a whole number from 0 to the request ('+R+').';}
+function checkProp(K0,K1,X,ext){
+  if(!Number.isInteger(K1)||K1<=K0||K1>C)return 'New guarantee must be above '+K0+' and at most '+C+'.';
+  if(!Number.isInteger(X)||X<0)return ext==='fee'?'Fee must be a whole number, 0 or more.':'Minimum purchase must be a whole number, 0 or more.';
+  if(ext==='min'&&X>K1)return 'Minimum purchase cannot exceed the new guarantee ('+K1+').';
+  return '';
+}
+//#LOGIC-END
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>{const r=Math.round(n*100)/100;return r.toLocaleString('en-US',{maximumFractionDigits:2});};
+const sgn=n=>(n>0?'+':n<0?'−':'')+fmt(Math.abs(n));
+const cls=n=>n>0?'pos':n<0?'neg':'';
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),3200);}
+
+function modal(title,html,buttons,wide){
+  const old=document.getElementById('modal');if(old)old.remove();
+  const o=document.createElement('div');o.className='ov';o.id='modal';
+  o.innerHTML='<div class="dlg'+(wide?' wide':'')+'" role="dialog" aria-modal="true" aria-label="'+esc(title)+'"><h3>'+esc(title)+'</h3><div>'+html+'</div><div class="row"></div></div>';
+  const row=o.querySelector('.row');
+  buttons.forEach(b=>{const el=document.createElement('button');el.className='btn '+(b.cls||'ghost');el.textContent=b.label;
+    el.onclick=async()=>{const r=b.fn?await b.fn(o):undefined;if(r!==false)o.remove();};row.appendChild(el);});
+  o.addEventListener('click',e=>{if(e.target===o)o.remove();});
+  document.body.appendChild(o);const f=row.lastChild;if(f)f.focus();
+}
+/* collapsible panels keep their open/closed state across screen refreshes */
+const detState=(()=>{try{return JSON.parse(localStorage.getItem('fr_det')||'{}')||{};}catch(e){return {};}})();
+function detOpen(id,def){return (Object.prototype.hasOwnProperty.call(detState,id)?detState[id]:def)?' open':'';}
+document.addEventListener('toggle',e=>{const t=e.target;if(t&&t.tagName==='DETAILS'&&t.id){detState[t.id]=t.open;try{localStorage.setItem('fr_det',JSON.stringify(detState));}catch(err){}}},true);
+/* ---------- storage layer: claude.ai db, Firebase, or this browser ---------- */
+const Store={mode:'local',db:null,loc:new Map(),subs:[],online:false};
+let NS=null;            // class code: all data for a class lives under sessions/<code>/
+let standalone=false;   // true outside claude.ai
+Store.p=function(path){return NS?'sessions/'+NS+'/'+path:path;};
+function deepMerge(a,b){const o=Object.assign({},a);for(const k in b){const v=b[k];
+  if(v&&typeof v==='object'&&!Array.isArray(v)&&o[k]&&typeof o[k]==='object'&&!Array.isArray(o[k]))o[k]=deepMerge(o[k],v);else o[k]=v;}return o;}
+function locSnap(path){
+  if(path.split('/').length%2===0){return Store.loc.has(path)?Object.assign({},Store.loc.get(path)):null;}
+  const out=[];for(const [k,v] of Store.loc){if(k.startsWith(path+'/')&&k.split('/').length===path.split('/').length+1)out.push(Object.assign({_id:k.split('/').pop()},v));}return out;}
+const clean=d=>JSON.parse(JSON.stringify(d));
+Store.sub=function(path,cb){
+  path=this.p(path);
+  if(this.mode==='live'){
+    if(path.split('/').length%2===0)return this.db.doc(path).onSnapshot(s=>cb(s.exists?Object.assign({},s.data()):null),e=>console.warn(e));
+    return this.db.collection(path).onSnapshot(s=>cb(s.docs.map(d=>Object.assign({_id:d.id},d.data()))),e=>console.warn(e));
+  }
+  const rec={path,cb};this.subs.push(rec);setTimeout(()=>cb(locSnap(path)),0);
+  return ()=>{this.subs=this.subs.filter(x=>x!==rec);};
+};
+Store.get=async function(path,raw){const pth=raw?path:this.p(path);
+  if(this.mode==='live'){const s=await this.db.doc(pth).get();return s.exists?Object.assign({},s.data()):null;}
+  return this.loc.has(pth)?Object.assign({},this.loc.get(pth)):null;};
+// browser-only mode keeps one localStorage key per document, so several tabs can play together
+Store.writeLocal=function(pth,v){if(v==null)this.loc.delete(pth);else this.loc.set(pth,v);
+  try{if(v==null)localStorage.removeItem('frdoc:'+pth);else localStorage.setItem('frdoc:'+pth,JSON.stringify(v));}catch(e){}
+  this.notify();};
+Store.restore=function(){this.loc=new Map();try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('frdoc:'))this.loc.set(k.slice(6),JSON.parse(localStorage.getItem(k)));}}catch(e){}};
+Store.onStorage=function(e){if(!e.key||!e.key.startsWith('frdoc:'))return;const pth=e.key.slice(6);
+  try{if(e.newValue==null)Store.loc.delete(pth);else Store.loc.set(pth,JSON.parse(e.newValue));}catch(err){return;}
+  for(const s of Store.subs)s.cb(locSnap(s.path));};
+Store.notify=function(){for(const s of this.subs)s.cb(locSnap(s.path));};
+Store.set=async function(path,data){const pth=this.p(path);
+  if(this.mode==='live'){await this.db.doc(pth).set(clean(data));return;}
+  this.writeLocal(pth,clean(data));};
+Store.update=async function(path,data){const pth=this.p(path);
+  if(this.mode==='live'){await this.db.doc(pth).update(clean(data));return;}
+  this.writeLocal(pth,deepMerge(this.loc.get(pth)||{},clean(data)));};
+Store.del=async function(path){const pth=this.p(path);if(this.mode==='local'){this.writeLocal(pth,null);return;}const r=this.db.doc(pth);if(typeof r.delete==='function')await r.delete();};
+async function save(op,path,data){
+  try{await Store[op](path,data);return true;}
+  catch(e){console.warn(e);toast(e&&(e.code==='invalid_argument'||e.code==='permission-denied')?'Not saved: you don’t have permission for that.':'Not saved. Check your connection and try again.');return false;}
+}
+
+/* ---------- app state ---------- */
+let G=null,pairs=[],movesRaw=[],revRaw=[],scen=null;
+let MV={},RV={};
+let uid=null,isInst=false,ready=false;
+let view={tab:'console',pair:'p1',role:'f',lb:'all'};
+let draft={},draftKey='';
+let plan=[];
+let raf=0,autoFired='';
+
+function reindex(){
+  MV={};RV={};
+  if(!G)return;
+  const att=G.att||{};
+  for(const m of movesRaw){if(m.sid!==G.sid)continue;if((m.att||0)!==(att[m.pos]||0))continue;((MV[m.pos]=MV[m.pos]||{})[m.pair]=MV[m.pos][m.pair]||{})[m.kind]=m;}
+  for(const r of revRaw){if(r.sid===G.sid)RV[r.pos]=r;}
+  plan=buildPlan(G.n,G.extra);
+}
+function rq(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render();autoCheck();botCheck();});}
+const pairById=id=>pairs.find(p=>p.id===id);
+const inSeat=(s,u)=>!!s&&(s.uid===u||(Array.isArray(s.members)&&s.members.includes(u)));
+function seatOf(u){if(!isInst&&u===uid){if(!mySeat)return null;const p=pairById(mySeat.pid);return p&&p[mySeat.role]?{pair:p,role:mySeat.role}:null;}for(const p of pairs){if(inSeat(p.f,u))return {pair:p,role:'f'};if(inSeat(p.d,u))return {pair:p,role:'d'};}return null;}
+const curStep=()=>G&&G.pos>=0?plan[G.pos]:null;
+const stepLabel=s=>s?(s.practice?'Practice round':'Round '+s.r+' of '+plan.filter(x=>x.ver===s.ver&&!x.practice).length):'';
+function scenAt(pos){const s=plan[pos];if(!s||!scen||scen.sid!==(G&&G.sid))return null;
+  if(scen.seed!=null){const r=rngFrom(scenKey(s,scen.seed,scen.repeat));return {S:r()<.5?-60:60,eps:Math.floor(r()*161)-80};}
+  return (scen.items&&scen.items[pos])||null;}
+function mvOf(pos,pairId){return (MV[pos]&&MV[pos][pairId])||{};}
+function resultFor(pos,pairId){const r=RV[pos];if(!r)return null;return outcome(plan[pos].ver,mvOf(pos,pairId),r.D);}
+function cumFor(pairId,verFilter){
+  let f=0,d=0,n=0;
+  for(let pos=1;pos<plan.length;pos++){if(!RV[pos])continue;if(verFilter&&verFilter!=='all'&&plan[pos].ver!==verFilter)continue;
+    const o=resultFor(pos,pairId);f+=o.fProfit;d+=o.dProfit;n++;}
+  return {f,d,t:f+d,n};
+}
+function activePairs(){return pairs.filter(p=>p.f&&p.d);}
+// Results and history show only the current game: the version being played (or the practice round).
+function sameGame(pos){const a=curStep(),b=plan[pos];if(!a||!b)return false;return !!a.practice===!!b.practice&&a.ver===b.ver;}
+function gameTotal(pairId){let f=0,d=0,n=0;for(let pos=0;pos<plan.length;pos++){if(!RV[pos]||!sameGame(pos))continue;const o=resultFor(pos,pairId);f+=o.fProfit;d+=o.dProfit;n++;}return {f,d,t:f+d,n};}
+function gameName(){const a=curStep();return a?(a.practice?'Practice round':GUIDE[a.ver].title):'';}
+function stageKind(stage){return {request:'req',allocate:'alloc',propose:'prop',respond:'resp'}[stage];}
+function stageStatus(){
+  const stage=G.stage,kind=stageKind(stage);if(!kind)return {done:0,total:0,pending:[]};
+  let done=0,total=0;const pending=[];
+  for(const p of activePairs()){
+    const mv=mvOf(G.pos,p.id);
+    if(kind==='prop'&&mv.alloc&&mv.alloc.K0>=C){continue;}
+    if(kind==='resp'&&!(mv.prop&&!mv.prop.skip))continue;
+    total++;if(mv[kind])done++;else pending.push(p.n);
+  }
+  return {done,total,pending};
+}
+
+/* ---------- init ---------- */
+let unsubs=[],roleSubs=[],chainSubs={},movesBy={},sigSub=null,sigPos=null,sigDoc=null,mySeat=null,joinsRaw=[],board=null,joinPending=false;
+function stopAll(list){list.forEach(f=>{try{f&&f();}catch(e){}});}
+function clearRoleSubs(){stopAll(roleSubs);roleSubs=[];stopAll(Object.values(chainSubs));chainSubs={};movesBy={};movesRaw=[];if(sigSub){try{sigSub();}catch(e){}}sigSub=null;sigPos=null;sigDoc=null;}
+// moves live under each supply chain, so a team can only ever read its own chain
+function syncChainSubs(){
+  const want=isInst?pairs.map(p=>p.id):(mySeat&&mySeat.pid?[mySeat.pid]:[]);
+  for(const pid of Object.keys(chainSubs))if(!want.includes(pid)){try{chainSubs[pid]();}catch(e){}delete chainSubs[pid];delete movesBy[pid];}
+  for(const pid of want)if(!chainSubs[pid])chainSubs[pid]=Store.sub('pairs/'+pid+'/moves',a=>{movesBy[pid]=a;movesRaw=[].concat(...Object.values(movesBy));reindex();rq();});
+  movesRaw=[].concat(...Object.values(movesBy));reindex();
+}
+// the private-round signal is stored where only fabless teams (and the instructor) can read it
+function syncSig(){
+  if(isInst||!G)return;
+  const need=G.pos>=0&&!['lobby','ready'].includes(G.stage)&&mySeat&&mySeat.role==='f';
+  if(!need){if(sigSub){try{sigSub();}catch(e){}}sigSub=null;sigPos=null;sigDoc=null;return;}
+  if(sigSub&&sigPos===G.pos)return;
+  if(sigSub){try{sigSub();}catch(e){}}
+  sigPos=G.pos;sigDoc=null;sigSub=Store.sub('sig/p'+G.pos,d=>{sigDoc=d;rq();});
+}
+function setupRole(){
+  clearRoleSubs();pairs=[];mySeat=null;joinsRaw=[];scen=null;draftKey='';
+  if(isInst){
+    roleSubs.push(Store.sub('pairs',a=>{pairs=a.map(x=>Object.assign({id:x._id},x)).sort((x,y)=>((x.n||0)-(y.n||0))||(x.id<y.id?-1:1));syncChainSubs();processJoins();rq();}));
+    roleSubs.push(Store.sub('joins',a=>{joinsRaw=a;processJoins();rq();}));
+    roleSubs.push(Store.sub('host/scen',d=>{scen=d;rq();}));
+  }else{
+    let pairSub=null,pairPid=null;
+    roleSubs.push(Store.sub('seats/'+uid,d=>{
+      mySeat=d;if(d)joinPending=false;
+      const pid=d?d.pid:null;
+      if(pid!==pairPid){if(pairSub){try{pairSub();}catch(e){}}pairSub=null;pairs=[];pairPid=pid;
+        if(pid)pairSub=Store.sub('pairs/'+pid,x=>{pairs=x?[Object.assign({id:pid},x)]:[];rq();});}
+      syncChainSubs();syncSig();rq();}));
+    roleSubs.push(()=>{if(pairSub)pairSub();});
+  }
+}
+function subscribeAll(){
+  stopAll(unsubs);unsubs=[];clearRoleSubs();
+  G=null;pairs=[];revRaw=[];scen=null;MV={};RV={};plan=[];draftKey='';board=null;mySeat=null;
+  unsubs.push(Store.sub('game/state',d=>{G=d;reindex();syncSig();rq();}));
+  unsubs.push(Store.sub('reveals',a=>{revRaw=a;reindex();rq();}));
+  unsubs.push(Store.sub('board/all',d=>{board=d;rq();}));
+  if(standalone){isInst=false;setupRole();
+    unsubs.push(Store.sub('admins/'+uid,d=>{const v=!!d;if(v!==isInst){isInst=v;setupRole();if(v)view.tab='console';}rq();}));}
+  else setupRole();
+}
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src));document.head.appendChild(s);});}
+async function loadFirebase(){
+  if(window.firebase&&window.firebase.firestore)return;
+  const b='https://www.gstatic.com/firebasejs/10.12.2/';
+  await loadScript(b+'firebase-app-compat.js');await loadScript(b+'firebase-auth-compat.js');await loadScript(b+'firebase-firestore-compat.js');
+}
+function ssGet(k){try{return sessionStorage.getItem(k);}catch(e){return null;}}
+function ssSet(k,v){try{sessionStorage.setItem(k,v);}catch(e){}}
+const normCode=s=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,10);
+function classFromUrl(){try{const q=new URLSearchParams(location.search).get('class');if(q)return normCode(q);const h=location.hash.replace('#','');return /^[A-Za-z0-9]{4,10}$/.test(h)?normCode(h):null;}catch(e){return null;}}
+function joinUrl(code){try{if(location.protocol==='file:')return null;return location.origin+location.pathname+'?class='+code;}catch(e){return null;}}
+let connError=null;const localOverride=(()=>{try{return sessionStorage.getItem('fr_local')==='1';}catch(e){return false;}})();
+function withTimeout(pr,ms){return Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(Object.assign(new Error('No answer after '+Math.round(ms/1000)+' seconds.'),{code:'timeout'})),ms))]);}
+function connErrorView(){
+  const e=connError||{},c=String(e.code||''),m=String(e.message||'');
+  let why='',fix='';
+  if(c==='bad-config'){why='The Firebase settings pasted into index.html are incomplete.';fix='Open index.html and check the FIREBASE_CONFIG block: it needs apiKey, authDomain, projectId, storageBucket, messagingSenderId and appId, each in quotes and separated by commas.';}
+  else if(e.step==='load'){why='The browser could not load Firebase from Google.';fix='A content blocker or network filter may be blocking gstatic.com. Try another browser, turn off ad blockers for this site, or try another network.';}
+  else if(/operation-not-allowed|admin-restricted/.test(c)){why='Anonymous sign-in is switched off in your Firebase project.';fix='In Firebase open Authentication → Sign-in method → Anonymous, switch it on and click Save. Then reload this page.';}
+  else if(/api-key|invalid-api-key/.test(c)||/API key/i.test(m)){why='Firebase did not accept the apiKey in index.html.';fix='Copy the firebaseConfig again from Firebase (gear icon → Project settings → Your apps) and paste it into index.html exactly.';}
+  else if(/unauthorized-domain|referer|requests-from/.test(c+m)){why='Firebase is blocking requests from this web address.';fix='In Firebase open Authentication → Settings → Authorized domains and add this site’s address: '+esc(location.host||'')+'.';}
+  else if(e.step==='auth'){why='Signing in to Firebase did not complete.';fix='Check that Anonymous sign-in is switched on (Authentication → Sign-in method) and that this site’s address is listed under Authentication → Settings → Authorized domains. Then reload.';}
+  else if(/permission-denied/.test(c)){why='The Firestore security rules are not set up yet.';fix='In Firebase open Firestore Database → Rules, paste the Fab-Rush rules, and click Publish. Then reload.';}
+  else if(/not-found|failed-precondition/.test(c)||/does not exist/i.test(m)){why='The Firestore database has not been created in this project.';fix='In Firebase open Firestore Database and click Create database (production mode). Then add the rules and reload.';}
+  else if(e.step==='db'){why='The game could not reach the Firestore database.';fix='Check that the database exists (Firestore Database in Firebase), that the rules are published, and that the projectId in index.html matches your project. Then reload.';}
+  else{why='The game could not connect to Firebase.';fix='Check the Firebase settings in index.html and the steps in SETUP.md, then reload.';}
+  return heroBlock('<h2 style="margin-top:0">Can’t connect to the online game</h2><p><b>'+why+'</b></p><p>'+fix+'</p>'+
+    '<p class="small muted">Details for troubleshooting: step “'+esc(e.step||'')+'”'+(c?', code “'+esc(c)+'”':'')+(m?': '+esc(m.slice(0,240)):'')+'</p>'+
+    '<div class="row"><button class="btn" data-act="retry">Try again</button><button class="btn ghost" data-act="uselocal">Use browser-only mode for now</button></div>');
+}
+async function init(){
+  render();
+  const cl=window.claude;
+  let db=null;
+  if(cl&&cl.use){db=await Promise.race([cl.use('db'),new Promise(r=>setTimeout(()=>r(null),6000))]).catch(()=>null);}
+  if(db){
+    Store.mode='live';Store.db=db;
+    try{const u=await cl.use('user');if(u){uid=await u.id();isInst=await u.canEdit();}}catch(e){}
+    if(!uid){uid=lsGet('fr_uid');if(!uid){uid='l'+Math.random().toString(36).slice(2,10);lsSet('fr_uid',uid);}}
+    subscribeAll();
+  }else{
+    standalone=true;
+    const cfg=window.FR_FIREBASE_CONFIG||FIREBASE_CONFIG;
+    if(cfg&&!localOverride){
+      // Connect step by step with time limits, so a problem shows on screen instead of hanging.
+      let step='settings';
+      try{
+        if(!cfg.apiKey||!cfg.projectId)throw Object.assign(new Error('The Firebase settings in index.html are missing apiKey or projectId.'),{code:'bad-config'});
+        step='load';await withTimeout(loadFirebase(),15000);
+        if(!window.firebase.apps||!window.firebase.apps.length){window.firebase.initializeApp(cfg);
+          try{window.firebase.firestore().settings({experimentalAutoDetectLongPolling:true,merge:true});}catch(e){}}
+        step='auth';const auth=window.firebase.auth();await withTimeout(auth.signInAnonymously(),15000);uid=auth.currentUser.uid;
+        Store.mode='live';Store.db=window.firebase.firestore();Store.online=true;
+        step='db';await withTimeout(Store.db.doc('sessions/_check/game/meta').get(),15000);
+      }catch(e){console.warn(e);connError={step,code:(e&&e.code)||'',message:(e&&e.message)||String(e)};Store.mode='local';Store.db=null;Store.online=false;ready=true;rq();return;}
+    }
+    if(Store.mode!=='live'){
+      Store.mode='local';Store.restore();window.addEventListener('storage',Store.onStorage);
+      uid=ssGet('fr_uid');if(!uid){uid='l'+Math.random().toString(36).slice(2,10);ssSet('fr_uid',uid);}
+    }
+    const code=classFromUrl()||lsGet('fr_class');
+    if(code&&!(await enterClass(code,true)))gatePrefill=code;
+  }
+  ready=true;rq();
+  setInterval(tickTimer,1000);
+}
+/* ---------- classes, instructor passcode, team login ---------- */
+let gatePrefill='',gateMsg={};
+const pinHash=(...parts)=>{const s=parts.join('|');return hashStr(s+'#fab').toString(36)+hashStr('rush#'+s).toString(36);};
+function genCode(){const a='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=a[Math.floor(Math.random()*a.length)];return s;}
+async function enterClass(code,silent){
+  code=normCode(code);if(code.length<4){if(!silent){gateMsg.join='Enter the class code your instructor gave you.';rq();}return false;}
+  let meta=null;try{meta=await Store.get('sessions/'+code+'/game/meta',true);}catch(e){console.warn(e);}
+  if(!meta){if(!silent){gateMsg.join='No class found with code '+code+'. Check the code with your instructor.';rq();}else lsSet('fr_class','');return false;}
+  NS=code;lsSet('fr_class',code);gateMsg={};subscribeAll();showTitle=false;rq();return true;
+}
+async function createClass(pin){
+  if(String(pin).length<6){gateMsg.inst='Choose a passcode of at least 6 characters.';rq();return;}
+  let code=genCode();
+  for(let i=0;i<6;i++){let m=null;try{m=await Store.get('sessions/'+code+'/game/meta',true);}catch(e){}if(!m)break;code=genCode();}
+  const ph=pinHash('admin',code,pin);NS=code;
+  try{await Store.set('hostauth/pin',{pin:ph});await Store.set('admins/'+uid,{pin:ph,at:Date.now()});await Store.set('game/meta',{createdAt:Date.now()});}
+  catch(e){console.warn(e);NS=null;gateMsg.inst='Could not create the class. Check the database setup (see SETUP.md).';rq();return;}
+  lsSet('fr_class',code);gateMsg={};subscribeAll();showTitle=false;view.tab='console';rq();
+  toast('Class '+code+' created. Keep your passcode: you need it to open this class on another device.');
+}
+async function openClass(code,pin){
+  code=normCode(code);if(code.length<4){gateMsg.inst='Enter the class code.';rq();return;}
+  let meta=null;try{meta=await Store.get('sessions/'+code+'/game/meta',true);}catch(e){}
+  if(!meta){gateMsg.inst='No class found with code '+code+'.';rq();return;}
+  const ph=pinHash('admin',code,pin);NS=code;
+  try{
+    const mine=await Store.get('admins/'+uid);
+    if(!mine){
+      if(Store.mode==='local'){const ha=await Store.get('hostauth/pin');if(!ha||ha.pin!==ph)throw new Error('wrong');}
+      await Store.set('admins/'+uid,{pin:ph,at:Date.now()});
+    }
+  }catch(e){NS=null;gateMsg.inst='That passcode is not right for class '+code+'.';rq();return;}
+  lsSet('fr_class',code);gateMsg={};subscribeAll();showTitle=false;view.tab='console';rq();
+}
+function leaveClass(){
+  stopAll(unsubs);unsubs=[];clearRoleSubs();mySeat=null;NS=null;lsSet('fr_class','');isInst=false;
+  G=null;pairs=[];movesRaw=[];revRaw=[];scen=null;MV={};RV={};plan=[];showTitle=true;rq();
+}
+// Automatic placement: fill the partner seat of a waiting team, else any open seat, else a demo seat, else start a new supply chain.
+function pickSeat(){
+  const human=s=>s&&s.uid!=='demo';
+  for(const p of pairs){if(human(p.f)&&!p.d)return {pid:p.id,role:'d'};if(human(p.d)&&!p.f)return {pid:p.id,role:'f'};}
+  for(const p of pairs){if(!p.f&&!p.d)return {pid:p.id,role:Math.random()<.5?'f':'d'};}
+  for(const p of pairs){if(!p.f)return {pid:p.id,role:'f'};if(!p.d)return {pid:p.id,role:'d'};}
+  for(const p of pairs){if(p.f&&p.f.uid==='demo'&&human(p.d))return {pid:p.id,role:'f'};if(p.d&&p.d.uid==='demo'&&human(p.f))return {pid:p.id,role:'d'};}
+  return {pid:null,role:Math.random()<.5?'f':'d'};
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let joining=false;
+async function autoJoin(team){
+  team=String(team||'').trim().replace(/\s+/g,' ').slice(0,28);
+  if(!team){toast('Enter your team name.');return;}
+  if(await save('set','joins/'+uid,{team,at:Date.now()})){joinPending=true;lsSet('fr_team',team);rq();}
+}
+// Runs only in the instructor's browser: one place decides every seat, so two teams never collide.
+let placing=false;
+async function processJoins(){
+  if(!isInst||placing||!joinsRaw.length)return;
+  placing=true;
+  try{
+    for(const j of joinsRaw.slice().sort((a,b)=>(a.at||0)-(b.at||0))){
+      const u=j._id;let found=null;
+      for(const p of pairs)for(const r of ['f','d'])if(!found&&inSeat(p[r],u))found={p,r};
+      const team=String(j.team||'').trim().replace(/\s+/g,' ').slice(0,28);
+      if(!found&&team){
+        const lower=team.toLowerCase();
+        for(const p of pairs)for(const r of ['f','d']){const s=p[r];if(!found&&s&&s.uid!=='demo'&&String(s.team||'').toLowerCase()===lower){
+          const ns=Object.assign({},s,{members:Array.from(new Set([].concat(s.members||[s.uid],[u])))});const o={};o[r]=ns;
+          if(await save('update','pairs/'+p.id,o)){p[r]=ns;found={p,r};}}}
+        if(!found){
+          const s=pickSeat(),seat={uid:u,team,members:[u],at:Date.now()};
+          if(!s.pid){const n=pairs.reduce((m,x)=>Math.max(m,x.n||0),0)+1,pid='p'+n,o={n,name:'Supply chain '+n,f:null,d:null,createdAt:Date.now()};o[s.role]=seat;
+            if(await save('set','pairs/'+pid,o)){const np=Object.assign({id:pid},o);pairs.push(np);found={p:np,r:s.role};}}
+          else{const p=pairById(s.pid),o={};o[s.role]=seat;if(await save('update','pairs/'+s.pid,o)){p[s.role]=seat;found={p,r:s.role};}}
+        }
+      }
+      if(found)await save('set','seats/'+u,{pid:found.p.id,role:found.r,team:found.p[found.r].team,at:Date.now()});
+      try{await Store.del('joins/'+u);}catch(e){console.warn(e);}
+    }
+  }finally{placing=false;}
+}
+async function clearSeat(pid,role){
+  const p=pairById(pid);if(!p||!p[role])return;
+  const members=[].concat(p[role].members||[],[p[role].uid]).filter(x=>x&&x!=='demo');
+  for(const m of new Set(members)){try{await Store.del('seats/'+m);}catch(e){console.warn(e);}}
+  const o={};o[role]=null;await save('update','pairs/'+pid,o);
+}
+// Class results are copied to a shared board only when the instructor releases them.
+async function publishBoard(){
+  if(!isInst||!G)return;
+  if(!(G.release&&G.release.profits)){if(board&&board.rows&&board.rows.length)await save('set','board/all',{sid:G.sid,rows:[]});return;}
+  const rows=activePairs().map(p=>{const c=gameTotal(p.id);return {id:p.id,name:p.name,teams:p.f.team+' / '+p.d.team,f:c.f,d:c.d,t:c.t};});
+  await save('set','board/all',{sid:G.sid,pos:G.pos,game:gameName(),rows,at:Date.now()});
+}
+
+/* ---------- instructor actions ---------- */
+async function soloDemo(){
+  if(!G){toast('Create a session first.');return;}
+  if(!pairs.length)await save('set','pairs/p1',{n:1,name:'Supply chain 1',f:null,d:null});
+  const A=['Aurora Silicon','Meridian Fab','Nova Logic','Helix Foundry','Quartz Labs','Tidal Fab','Cobalt Design','Ember Wafer','Lumen Chips','Basalt Foundry','Vertex Labs','Opal Fab'];
+  let i=0;for(const p of pairs){
+    const o={};if(!p.f)o.f={uid:'demo',team:A[(i*2)%12]+' (demo)',bot:i!==0};if(!p.d)o.d={uid:'demo',team:A[(i*2+1)%12]+' (demo)',bot:true};
+    if(o.f||o.d)await save('update','pairs/'+p.id,o);i++;}
+  const p1=pairs[0]||{id:'p1'};
+  if(p1.f&&p1.f.uid==='demo'&&p1.f.bot)await save('update','pairs/'+p1.id,{f:Object.assign({},p1.f,{bot:false})});
+  if(G.bots===false)await save('update','game/state',{bots:true});
+  view.tab='team';view.pair=p1.id;view.role='f';draftKey='';rq();window.scrollTo(0,0);
+  toast('You are the fabless in Supply chain 1. Demo teams play every other seat.');
+}
+async function createSession(n,pc,timer,seed,repeat){
+  const sid=Math.random().toString(36).slice(2,8);
+  const pl=buildPlan(n);
+  seed=String(seed==null?'':seed).trim().slice(0,40)||newSeed();repeat=!!repeat;
+  if(Store.mode==='local'){const pp=Store.p('pairs/'),rp=Store.p('reveals/');for(const k of Array.from(Store.loc.keys()))if((k.startsWith(pp)&&k.includes('/moves/'))||k.startsWith(rp)||k.startsWith(Store.p('sig/')))Store.writeLocal(k,null);}
+  botFired.clear();
+  if(!await save('set','host/scen',{sid,seed,repeat,items:genScen(pl,seed,repeat)}))return false;
+  for(let i=1;i<=pc;i++){if(!pairById('p'+i))await save('set','pairs/p'+i,{n:i,name:'Supply chain '+i,f:null,d:null,createdAt:Date.now()});}
+  await save('set','game/state',{sid,n,pc,pos:-1,stage:'lobby',curS:null,deadline:null,timerSec:timer,auto:true,calc:false,bots:true,insights:false,negMax:3,extra:[],att:{},
+    release:{profits:false,params:false},createdAt:Date.now()});
+  return true;
+}
+let advBusy=false;
+async function advance(){if(advBusy)return;advBusy=true;try{await advanceStep();}finally{advBusy=false;}}
+async function advanceStep(){
+  if(!G)return;
+  const st=G.stage,step=curStep(),ver=step&&step.ver,ext=ver&&VERS[ver].ext;
+  let patch=null;
+  const dl=()=>G.timerSec>0?Date.now()+G.timerSec*1000:null;
+  if(st==='lobby')patch={pos:0,stage:'ready',curS:null,deadline:null};
+  else if(st==='ready'){
+    if(!scen||scen.sid!==G.sid){toast('Scenario schedule not found. Create a new session.');return;}
+    const it0=scenAt(G.pos);if(!it0){toast('Scenario schedule not found. Create a new session.');return;}
+    const pub=!!VERS[ver].pub;
+    if(!await save('set','sig/p'+G.pos,{pos:G.pos,S:it0.S,pub}))return;
+    patch={stage:'request',curS:pub?it0.S:null,deadline:dl()};}
+  else if(st==='request')patch={stage:'allocate',deadline:dl()};
+  else if(st==='allocate')patch=ext?{stage:'propose',deadline:dl()}:{stage:'locked',deadline:null};
+  else if(st==='propose')patch={stage:'respond',deadline:dl()};
+  else if(st==='respond')patch={stage:'locked',deadline:null};
+  else if(st==='locked'){
+    const it=scenAt(G.pos);if(!it){toast('Scenario schedule not found. Create a new session.');return;}
+    const D=Math.max(0,MU+it.S+it.eps);
+    if(!await save('set','reveals/'+G.sid+'_'+G.pos,{sid:G.sid,pos:G.pos,S:it.S,eps:it.eps,D}))return;
+    patch={stage:'settled'};setTimeout(publishBoard,400);}
+  else if(st==='settled'){
+    // The version never changes here: at the end of a version the game stops at the debrief and waits for the instructor.
+    const ns=nextSame();patch=ns==null?{stage:'debrief'}:{pos:ns,stage:'ready',curS:null,deadline:null};
+  }
+  else if(st==='debrief'){
+    const nv=nextVersionTarget();patch=nv==null?{stage:'done'}:{pos:nv,stage:'ready',curS:null,deadline:null};setTimeout(publishBoard,600);
+  }
+  if(patch)await save('update','game/state',patch);
+}
+function advLabel(){
+  const st=G.stage,step=curStep(),ext=step&&VERS[step.ver].ext;
+  return {lobby:'Start the practice round',ready:'Open round and reveal the signal',request:'Close requests and open allocation',
+    allocate:ext?'Close allocation and open proposals':'Close allocation',propose:'Close proposals and open negotiation',
+    respond:'Close negotiation',locked:'Reveal demand and settle',settled:endOfVersion()?'Finish this version and open the debrief':'Next round of this version',
+    debrief:nextVersionLabel(),done:''}[st];
+}
+// next unplayed round of the current version (null at the end of the version)
+function nextSame(){const a=plan[G.pos];if(!a||a.practice)return null;let best=null;
+  for(let i=0;i<plan.length;i++){const s=plan[i];if(i===G.pos||s.ver!==a.ver||s.practice||RV[i])continue;if(best==null||s.r<plan[best].r)best=i;}return best;}
+function firstOpen(v){let best=null;for(let i=0;i<plan.length;i++){const s=plan[i];if(s.ver!==v||s.practice||RV[i])continue;if(best==null||s.r<plan[best].r)best=i;}return best;}
+// first unplayed round of the next version in the standard order
+function nextVersionTarget(){const a=plan[G.pos];if(!a)return null;const start=a.practice?0:VORDER.indexOf(a.ver)+1;
+  for(let k=start;k<VORDER.length;k++){const t=firstOpen(VORDER[k]);if(t!=null)return t;}return null;}
+function endOfVersion(){return !!plan[G.pos]&&nextSame()==null;}
+function nextVersionLabel(){const t=nextVersionTarget(),nx=t==null?null:plan[t],cur=plan[G.pos];if(!cur)return '';if(!nx)return 'End the game';return cur&&cur.practice?'Start the scored rounds':'Move on to the '+GUIDE[nx.ver].title.toLowerCase();}
+function confirmMoveOn(){
+  const t=nextVersionTarget(),nx=t==null?null:plan[t],cur=plan[G.pos];
+  const body=!nx?'<p>This ends the game. Teams will see their final results. You can still add rounds instead.</p>'
+    :(cur&&cur.practice?'<p>Scored rounds begin with the '+esc(GUIDE[nx.ver].title.toLowerCase())+'. Every round from now on counts.</p>'
+    :'<p>Teams will switch from the '+esc(GUIDE[cur.ver].title.toLowerCase())+' to the <b>'+esc(GUIDE[nx.ver].title.toLowerCase())+'</b>.</p><p class="small">'+GUIDE[nx.ver].newv+'</p>');
+  modal(nextVersionLabel()+'?',body,[{label:'Stay here',cls:'ghost'},{label:nextVersionLabel(),cls:'',fn:async()=>{await advance();}}]);
+}
+async function addRound(){
+  const cur=plan[G.pos];if(!cur||cur.practice||G.stage!=='debrief')return;
+  const ex=(Array.isArray(G.extra)?G.extra:[]).concat([cur.ver]);const np=buildPlan(G.n,ex),idx=np.length-1;
+  await save('update','game/state',{extra:ex,pos:idx,stage:'ready',curS:null,deadline:null});
+  toast('Added round '+np[idx].r+' of the '+GUIDE[cur.ver].title.toLowerCase()+'.');
+}
+/* switch to any version at any moment */
+function openSwitch(v){
+  if(!G)return;
+  const st=G.stage,cur=curStep(),inRound=!!cur&&!RV[G.pos]&&['request','allocate','propose','respond','locked'].includes(st);
+  if(cur&&!cur.practice&&cur.ver===v&&!['settled','debrief','done'].includes(st)){toast('Teams are already playing the '+GUIDE[v].title.toLowerCase()+'.');return;}
+  const t=firstOpen(v),r=t==null?(plan.filter(s=>s.ver===v&&!s.practice).length+1):plan[t].r;
+  const body='<p>Teams switch to the <b>'+esc(GUIDE[v].title.toLowerCase())+'</b>, round '+r+(t==null?' (an extra round, since every scheduled round of this version has been played)':'')+'.</p>'+
+    '<p class="small">'+GUIDE[v].short+' '+GUIDE[v].newv+'</p>'+
+    (inRound?'<div class="why" style="border-left-color:var(--bad)"><b>The current round will be cancelled</b>Its demand has not been revealed yet, so its decisions are discarded and it does not count. You can come back to it later; it will start fresh.</div>':'');
+  modal('Switch to the '+GUIDE[v].title.toLowerCase()+'?',body,[{label:'Cancel',cls:'ghost'},{label:'Switch now',cls:'',fn:async()=>{await doSwitch(v);}}]);
+}
+async function doSwitch(v){
+  let ex=Array.isArray(G.extra)?G.extra.slice():[],t=firstOpen(v);
+  if(t==null){ex.push(v);t=buildPlan(G.n,ex).length-1;}
+  const att=Object.assign({},G.att||{});
+  if(G.pos>=0&&!RV[G.pos])att[G.pos]=(att[G.pos]||0)+1;   // cancel the unrevealed round in progress
+  att[t]=(att[t]||0)+1;                                      // the target round always starts clean
+  draftKey='';
+  await save('update','game/state',{extra:ex,att,pos:t,stage:'ready',curS:null,deadline:null});setTimeout(publishBoard,600);
+  toast('Switched to the '+GUIDE[v].title.toLowerCase()+'. Open the round when you are ready.');
+}
+function autoCheck(){
+  if(!isInst||!G||!G.auto)return;
+  if(!['request','allocate','propose','respond'].includes(G.stage))return;
+  const key=G.sid+G.pos+G.stage+'#'+attNow();if(autoFired===key)return;
+  const s=stageStatus(),late=G.deadline&&Date.now()>G.deadline;
+  if(late||(activePairs().length>0&&s.done===s.total)){autoFired=key;setTimeout(()=>{if(G&&G.sid+G.pos+G.stage+'#'+attNow()===key)advance();},late?200:900);}
+}
+/* ---------- demo teams (played by the instructor's browser) ---------- */
+const botFired=new Set();
+const NEGMAX=()=>{const v=G?Number(G.negMax):3;return v>=1&&v<=3?v:3;};
+const attNow=()=>((G&&G.att)||{})[G.pos]||0;
+function mkMove(pairId,kind,data){return save('set','pairs/'+pairId+'/moves/'+G.sid+'_'+G.pos+'_'+kind+'_a'+attNow(),Object.assign({sid:G.sid,pos:G.pos,pair:pairId,kind,att:attNow(),ts:Date.now()},data));}
+function botMove(st,ver,ext,S,mv,rnd){
+  const j=n=>Math.round((rnd()*2-1)*n),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),lo=S<0?0:120;
+  if(st==='request')return {R:clamp((S<0?150:260)+j(15),0,C)};
+  if(st==='allocate'){const R=mv.req?mv.req.R:0,tgt=VERS[ver].pub?(S<0?80:200):140;return {K0:clamp(tgt+j(12),0,R)};}
+  if(st==='propose'){const K0=mv.alloc?mv.alloc.K0:0;
+    if(ext==='fee'){const K1=clamp(S<0?144:264,0,C);if(K1<=K0)return {K1:null,X:0,skip:true};return {K1,X:Math.round((300+rnd()*2400)/10)*10,skip:false};}
+    const K1=Math.min(C,K0+40);if(K1<=K0)return {K1:null,X:0,skip:true};return {K1,X:clamp(lo+20+Math.round(rnd()*70),0,K1),skip:false};}
+  return null;
+}
+function botNeg(ext,S,mv,who,rnd){
+  const offs=offersOf(mv),n=offs.length,last=offs[n-1],K0=mv.alloc?mv.alloc.K0:0,canC=n<NEGMAX();
+  const gain=(role,K1,X)=>expProfit(role,K1,ext==='fee'?X:0,ext==='min'?X:0,S)-expProfit(role,K0,0,0,S);
+  const g=gain(who,last.K1,last.X),dec=a=>({kind:'resp',data:{accept:a,by:who,on:n}});
+  if(who==='d'){
+    if(g>150||(!canC&&g>0))return dec(true);
+    if(!canC)return dec(false);
+    let X=last.X;
+    if(ext==='fee')X=Math.round((last.X-g+250+rnd()*500)/10)*10;
+    else{for(let L=Math.round(last.X);L<=last.K1;L++){X=L;if(gain('d',last.K1,L)>=180)break;}}
+    return {kind:n===1?'o2':'o3',data:{K1:last.K1,X,by:'d'}};
+  }
+  if(g>0)return dec(true);
+  if(!canC)return dec(false);
+  const mine=offs.filter(o=>o.by==='f').pop();let X=((mine?mine.X:0)+last.X)/2;X=ext==='fee'?Math.round(X/10)*10:Math.round(X);
+  return {kind:'o3',data:{K1:last.K1,X,by:'f'}};
+}
+function botCheck(){
+  if(!isInst||!G||G.bots===false||!['request','allocate','propose','respond'].includes(G.stage))return;
+  const step=curStep();if(!step)return;
+  const st=G.stage,ver=step.ver,ext=VERS[ver].ext,S=curSig();
+  for(const p of activePairs()){
+    const mv=mvOf(G.pos,p.id);let actor,kind;
+    if(st==='respond'){if(!ext)continue;actor=negTurn(mv);if(!actor)continue;kind='neg';}
+    else{actor={request:'f',allocate:'d',propose:'f'}[st];kind=stageKind(st);if(mv[kind])continue;if(st==='propose'&&(!ext||(mv.alloc&&mv.alloc.K0>=C)))continue;}
+    const seat=p[actor];if(!seat||!seat.bot)continue;
+    const key=G.sid+'_'+G.pos+'_'+st+'_'+p.id+'#'+attNow()+'#'+offersOf(mv).length;if(botFired.has(key))continue;botFired.add(key);
+    const rnd=rngFrom(key),pid=p.id;
+    setTimeout(()=>{
+      if(!G)return;const cur=mvOf(G.pos,pid);
+      if(G.sid+'_'+G.pos+'_'+G.stage+'_'+pid+'#'+attNow()+'#'+offersOf(cur).length!==key)return;
+      const pp=pairById(pid);if(!pp||!pp[actor]||!pp[actor].bot)return;
+      if(st==='respond'){if(negTurn(cur)!==actor)return;const r=botNeg(ext,S,cur,actor,rnd);if(r)mkMove(pid,r.kind,r.data);}
+      else{if(cur[kind])return;const data=botMove(st,ver,ext,S,cur,rnd);if(data)mkMove(pid,kind,data);}
+    },900+Math.floor(rnd()*1000));
+  }
+}
+function tickTimer(){
+  const el=$('#timer');
+  if(el&&G&&G.deadline&&['request','allocate','propose','respond'].includes(G.stage)){
+    const s=Math.max(0,Math.round((G.deadline-Date.now())/1000));
+    el.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');el.className='timer'+(s===0?' late':'');
+    const t2=$('#timer2');if(t2){t2.textContent=el.textContent;t2.classList.toggle('lo',s<=10);}
+  }else if(el)el.textContent='';
+  autoCheck();botCheck();
+}
+
+/* ---------- wafer art ---------- */
+function wafer(anim,cw,ch){
+  cw=cw||13;ch=ch||10;let s='';const R=94;
+  for(let x=8;x<192-cw;x+=cw+2)for(let y=8;y<192-ch;y+=ch+2){
+    const pts=[[x,y],[x+cw,y],[x,y+ch],[x+cw,y+ch]];
+    if(!pts.every(p=>Math.hypot(p[0]-100,p[1]-100)<R-3))continue;
+    const h=200+((x+y)/380)*125,l=48+((x*7+y*3)%5)*3,o=((x*13+y*7)%11)===0?.35:1;
+    const col=Math.round((x-8)/(cw+2));
+    s+='<rect class="die" x="'+x+'" y="'+y+'" width="'+cw+'" height="'+ch+'" rx="1.5" fill="hsl('+h.toFixed(0)+' 78% '+l+'%)" opacity="'+o+'"'+(anim?' style="animation-delay:'+(col*38)+'ms"':'')+'/>';
+  }
+  return '<svg class="wafer'+(anim?' anim':'')+'" viewBox="0 0 200 200" role="img" aria-label="Silicon wafer with a grid of dies">'+
+    '<circle cx="100" cy="100" r="96" fill="var(--panel2)" stroke="var(--ink2)" stroke-width="2"/>'+s+
+    '<circle cx="100" cy="196" r="6" fill="var(--bg)"/></svg>';
+}
+
+/* ---------- visuals ---------- */
+function tilesFor(v){
+  const t=[];
+  for(let i=0;i<C;i++){
+    let c='free';
+    if(v.kind==='settled'){c=i<v.sold?'sold':i<v.purchased?'excess':i<v.K?'unused':'ext';}
+    else if(v.kind==='req'){c=i<v.R?'req':'free';}
+    else if(v.kind==='alloc'){c=i<v.K0?'res':'ext';}
+    else if(v.kind==='inc'){c=i<v.K0?'res':i<v.K1?'inc':'ext';}
+    t.push(c);
+  }
+  return t;
+}
+function mapSVG(v){
+  const t=tilesFor(v),cols=20,s=24;let r='';
+  t.forEach((c,i)=>{r+='<rect class="t-'+c+(v.kind==='settled'?' rv':'')+'"'+(v.kind==='settled'?' style="animation-delay:'+Math.min(i*4,1100)+'ms"':'')+' x="'+((i%cols)*s+2)+'" y="'+(Math.floor(i/cols)*s+2)+'" width="20" height="20" rx="3"/>';});
+  const leg={settled:[['sold','Sold','var(--fab)'],['excess','Bought above demand','var(--bad)'],['unused','Reserved, unused','transparent;border:2px solid var(--fab)'],['ext','External customers','var(--fdy)']],
+    req:[['req','Requested','transparent;border:2px solid var(--fab)']],
+    alloc:[['res','Protected for the fabless','var(--fab)'],['ext','External customers','var(--fdy)']],
+    inc:[['res','Current guarantee','var(--fab)'],['inc','Proposed increase','var(--fabsoft);border:2px dashed var(--fab)'],['ext','External customers','var(--fdy)']],
+    none:[]}[v.kind]||[];
+  return '<svg viewBox="0 0 484 340" role="img" aria-label="Capacity map: 280 wafer starts" style="width:100%;height:auto"><defs><linearGradient id="gF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--fab)"/><stop offset="1" stop-color="var(--fab2)"/></linearGradient><linearGradient id="gD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--fdy)"/><stop offset="1" stop-color="var(--fdy2)"/></linearGradient><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="transparent"/><line x1="0" y1="0" x2="0" y2="6" stroke="var(--bad)" stroke-width="3"/></pattern></defs>'+r+'</svg>'+
+    '<div class="legend">'+leg.map(l=>'<span><i style="background:'+l[2]+'"></i>'+l[1]+'</span>').join('')+'<span class="num">1 tile = 1 wafer start · 280 total</span></div>';
+}
+function demandSVG(o){
+  const x=v=>24+v*(512/280);let g='';
+  const S=o.S;
+  const band=(l,u,known,color,label)=>{
+    const h=known?66:33,y=100-h;
+    return '<rect x="'+x(l)+'" y="'+y+'" width="'+(x(u)-x(l))+'" height="'+h+'" rx="4" fill="url(#gDem)" opacity="'+(known?.75:.45)+'"/>'+
+      '<text x="'+(x(l)+4)+'" y="'+(y-5)+'" font-size="11" fill="var(--ink2)">'+label+'</text>';};
+  if(S===null){g+=band(0,160,false,'var(--sig)','Low signal: 0–160');g+=band(120,280,false,'var(--sig)','High signal: 120–280');}
+  else if(S<0){g+=band(0,160,true,'var(--sig)','Low signal (−60): demand 0–160');}
+  else{g+=band(120,280,true,'var(--sig)','High signal (+60): demand 120–280');}
+  g+='<line x1="24" x2="536" y1="100" y2="100" stroke="var(--ink2)"/>';
+  for(let v=0;v<=280;v+=70)g+='<text x="'+x(v)+'" y="116" font-size="11" text-anchor="middle" fill="var(--ink2)">'+v+'</text>';
+  if(o.K!=null)g+='<line x1="'+x(o.K)+'" x2="'+x(o.K)+'" y1="14" y2="100" stroke="var(--fab)" stroke-width="2.5"/><text x="'+x(o.K)+'" y="10" font-size="11.5" font-weight="700" text-anchor="middle" fill="var(--fab)">guarantee '+o.K+'</text>';
+  if(o.K1!=null)g+='<line x1="'+x(o.K1)+'" x2="'+x(o.K1)+'" y1="14" y2="100" stroke="var(--fab)" stroke-width="2" stroke-dasharray="4 3"/><text x="'+x(o.K1)+'" y="10" font-size="11.5" font-weight="700" text-anchor="middle" fill="var(--fab)">proposed '+o.K1+'</text>';
+  if(o.D!=null)g+='<path d="M'+x(o.D)+' 100 l-6 10 l6 -4 l6 4z" fill="var(--bad)"/><line x1="'+x(o.D)+'" x2="'+x(o.D)+'" y1="30" y2="100" stroke="var(--bad)" stroke-width="2"/><text x="'+x(o.D)+'" y="26" font-size="12" font-weight="800" text-anchor="middle" fill="var(--bad)">demand '+o.D+'</text>';
+  return '<svg viewBox="0 0 560 124" role="img" aria-label="Possible demand range" style="width:100%;height:auto"><defs><linearGradient id="gDem" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--sig)"/><stop offset="1" stop-color="var(--fab)"/></linearGradient></defs>'+g+'</svg>';
+}
+// the current signal: public rounds carry it in the game state; private rounds only via the fabless-only document
+function curSig(){
+  if(!G||G.pos<0||G.stage==='ready'||G.stage==='lobby')return null;
+  if(G.curS!=null)return G.curS;
+  if(isInst){const it=scenAt(G.pos);return it?it.S:null;}
+  return sigDoc&&sigDoc.pos===G.pos?sigDoc.S:null;
+}
+function knownS(role){
+  const S=curSig();if(S==null)return null;
+  if(role==='f')return S;
+  const step=curStep();return step&&VERS[step.ver].pub?S:null;
+}
+
+/* ---------- wafer level view ---------- */
+const WAF=(function(){
+  const w=1,h=.86;
+  function build(r){const out=[],n=Math.ceil(r/h)+2;
+    for(let j=-n;j<n;j++)for(let i=-n;i<n;i++){const x=i*w,y=j*h;
+      const far=Math.max(Math.hypot(x,y),Math.hypot(x+w,y),Math.hypot(x,y+h),Math.hypot(x+w,y+h));
+      if(far<=r)out.push({x:x,y:y,j:j,far:far});}
+    return out;}
+  let d=[],r=6;
+  for(;r<20;r+=0.02){d=build(r);if(d.length>=C)break;}
+  d.sort((a,b)=>b.far-a.far);d=d.slice(d.length-C);
+  d.sort((a,b)=>b.j-a.j||a.x-b.x);
+  return {dies:d,r:r};
+})();
+function waferSVG(vs){
+  const cx=330,cy=236,R=212,s=R/WAF.r*0.99,dw=s-2.4,dh=s*.86-2.4;
+  const kinds=tilesFor(vs.tiles),dm=vs.demand||{},S=(dm.S==null)?null:dm.S;
+  const settled=vs.tiles.kind==='settled';
+  const py=d=>cy+d.y*s,px=d=>cx+d.x*s;
+  const yAt=v=>{if(v<=0){const d=WAF.dies[0];return py(d)+s*.86;}return py(WAF.dies[Math.min(v,C)-1]);};
+  const dens=i=>{const lo=i<160,hi=i>=120;if(S===null)return (lo?.5:0)+(hi?.5:0);return S<0?(lo?1:0):(hi?1:0);};
+  let halo='',tiles='';
+  WAF.dies.forEach((d,i)=>{
+    const x=px(d)+1.2,y=py(d)+1.2,k=dens(i);
+    if(k>0)halo+='<rect x="'+(x-3)+'" y="'+(y-3)+'" width="'+(dw+6)+'" height="'+(dh+6)+'" rx="4.5" fill="var(--sig)" opacity="'+(.16+.5*k).toFixed(2)+'"/>';
+    tiles+='<rect class="t-'+kinds[i]+(settled?' rv':'')+'"'+(settled?' style="animation-delay:'+Math.min(i*4,1100)+'ms"':'')+' x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+dw.toFixed(1)+'" height="'+dh.toFixed(1)+'" rx="2.5"/>';
+  });
+  let g='<circle cx="'+cx+'" cy="'+cy+'" r="'+(R+7)+'" fill="var(--panel2)" stroke="var(--ink2)" stroke-width="2.5"/><circle cx="'+cx+'" cy="'+(cy+R+7)+'" r="8" fill="var(--panel)"/>';
+  // scale + faint level lines
+  [0,70,140,210,280].forEach(v=>{const y=yAt(v);
+    g+='<line x1="'+(cx-R-8)+'" x2="'+(cx+R+8)+'" y1="'+y+'" y2="'+y+'" stroke="var(--ink2)" stroke-width="1" stroke-dasharray="2 5" opacity=".35"/>'+
+       '<text class="wf-tick num" x="'+(cx-R-16)+'" y="'+(y+4)+'" text-anchor="end">'+v+'</text>';});
+  g+=halo+tiles;
+  // demand brackets
+  const br=(lo,hi,x,label)=>{const y1=yAt(hi),y2=yAt(lo);
+    return '<path d="M'+(x-6)+' '+y1+' H'+x+' V'+y2+' H'+(x-6)+'" fill="none" stroke="var(--sig)" stroke-width="3" stroke-linecap="round"/>'+
+      '<text class="wf-lab" fill="var(--sig)" transform="translate('+(x+15)+','+((y1+y2)/2)+') rotate(-90)" text-anchor="middle">'+label+'</text>';};
+  const bx=cx+R+126;
+  if(S===null){g+=br(0,160,bx,'Low signal 0–160')+br(120,280,bx+22,'High signal 120–280');}
+  else if(S<0)g+=br(0,160,bx,'Possible demand 0–160');
+  else g+=br(120,280,bx,'Possible demand 120–280');
+  // markers
+  let lastY=-99;
+  const mark=(v,color,text,dash)=>{const y=yAt(v);let ty=y;if(Math.abs(ty-lastY)<22)ty=lastY+22;lastY=ty;
+    return '<line x1="'+(cx-R-8)+'" x2="'+(cx+R+8)+'" y1="'+y+'" y2="'+y+'" stroke="'+color+'" stroke-width="3"'+(dash?' stroke-dasharray="6 4"':'')+'/>'+
+      '<text class="wf-lab" x="'+(cx+R+14)+'" y="'+(ty+4)+'" fill="'+color+'">'+text+'</text>';};
+  if(dm.K!=null)g+=mark(dm.K,'var(--fab)','guarantee '+dm.K);
+  if(dm.K1!=null)g+=mark(dm.K1,'var(--fab)','proposed '+dm.K1,true);
+  if(dm.D!=null)g+=mark(dm.D,'var(--bad)','demand '+dm.D);
+  return '<svg viewBox="0 0 720 484" role="img" aria-label="Wafer level view: 280 wafer starts filled from the bottom, with possible demand shown as a bracket" style="width:100%;height:auto">'+
+    '<defs><linearGradient id="gF" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--fab)"/><stop offset="1" stop-color="var(--fab2)"/></linearGradient><linearGradient id="gD" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--fdy)"/><stop offset="1" stop-color="var(--fdy2)"/></linearGradient><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--bad)" stroke-width="3"/></pattern></defs>'+g+'</svg>';
+}
+function legendHTML(kind){
+  const L={settled:[['Sold','var(--fab)'],['Bought above demand','var(--bad)'],['Reserved, unused','transparent;border:2px solid var(--fab)'],['External customers','var(--fdy)']],
+    req:[['Requested','var(--fabsoft);border:2px solid var(--fab)']],
+    alloc:[['Protected for the fabless','var(--fab)'],['External customers','var(--fdy)']],
+    inc:[['Current guarantee','var(--fab)'],['Proposed increase','var(--fabsoft);border:2px dashed var(--fab)'],['External customers','var(--fdy)']],none:[]}[kind]||[];
+  return '<div class="legend">'+L.map(l=>'<span><i style="background:'+l[1]+'"></i>'+l[0]+'</span>').join('')+'<span><i style="background:var(--sig);opacity:.6"></i>Possible demand</span></div>';
+}
+function waferBlock(vs){return waferSVG(vs)+legendHTML(vs.tiles.kind);}
+let visMode=lsGet('fr_vis')||'wafer';
+function visState(role,pairId){
+  const step=curStep(),mv=mvOf(G.pos,pairId),res=G.stage==='settled'?resultFor(G.pos,pairId):null;
+  const S=res?RV[G.pos].S:knownS(role);
+  if(res)return {tiles:{kind:'settled',sold:res.sold,purchased:res.purchased,K:res.K},demand:{S,K:res.K,D:res.D}};
+  const ext=step&&VERS[step.ver].ext,st=G.stage;
+  if(mv.alloc){
+    const K0=mv.alloc.K0;
+    if(ext&&st==='propose'&&role==='f'&&draft.K1>K0)return {tiles:{kind:'inc',K0,K1:draft.K1},demand:{S,K:K0,K1:draft.K1}};
+    if(mv.prop&&!mv.prop.skip&&(st==='respond'||st==='locked'||(st==='propose'&&role==='d'))){const offs=offersOf(mv),k1=offs[offs.length-1].K1;
+      return {tiles:{kind:'inc',K0,K1:k1},demand:{S,K:K0,K1:k1}};}
+    return {tiles:{kind:'alloc',K0},demand:{S,K:K0}};
+  }
+  if(role==='d'&&st==='allocate'&&mv.req&&draft.K0!=null)return {tiles:{kind:'alloc',K0:draft.K0},demand:{S,K:draft.K0}};
+  if(mv.req)return {tiles:{kind:'req',R:mv.req.R},demand:{S}};
+  if(role==='f'&&st==='request'&&draft.R!=null)return {tiles:{kind:'req',R:draft.R},demand:{S}};
+  return {tiles:{kind:'none'},demand:{S}};
+}
+
+/* ---------- explanations ---------- */
+function guidePanel(role,ver,label){
+  const g=GUIDE[ver],id='det-guide-'+ver+(label?'-next':'');
+  return '<details class="panel guide" id="'+id+'"'+detOpen(id,true)+'><summary>'+(label||'How this version works')+': '+esc(g.title)+'</summary>'+
+    '<p><b>'+g.short+'</b> '+g.see[role]+'</p>'+
+    '<p class="small"><b>What’s new:</b> '+g.newv+'</p>'+
+    '<p class="small" style="margin-bottom:0"><b>Each round</b></p><ol class="small">'+g.steps.map(s=>'<li>'+s+'</li>').join('')+'</ol>'+
+    '<p class="small"><b>Who pays what:</b> '+g.pay+'</p>'+
+    '<p class="small"><b>Think about:</b> '+g.think[role]+'</p>'+
+    '<button class="btn sm ghost" data-act="guide">Compare all four versions</button></details>';
+}
+function openGuide(){
+  const rows=VORDER.map(v=>{const g=GUIDE[v];return '<tr><td><b>'+esc(VERS[v].name)+'</b><div class="small muted">'+esc(VERS[v].sub)+'</div></td><td>'+(VERS[v].pub?'Both companies':'Fabless only')+'</td><td>'+(VERS[v].ext?'Request, allocation, then a negotiation over '+(v==='fee'?'K1 and fee F':'K1 and minimum L')+': up to three alternating offers, ending in accept or reject':'Request, then allocation')+'</td><td>'+g.pay+'</td><td>'+g.lesson+'</td></tr>';}).join('');
+  modal('How the four versions differ',
+    '<p class="small">Every version uses the same capacity (280 wafer starts), wholesale price (80 per wafer) and demand model D = 140 + S + ε, with S = −60 or +60 (equally likely) and ε uniform on −80 to 80. Each round is an independent year. One practice round comes first and is not scored.</p>'+
+    '<div class="scroll"><table class="gtable"><tr><th>Version</th><th>Who sees the signal</th><th>Decisions each round</th><th>What the fabless pays</th><th>Key idea</th></tr>'+rows+'</table></div>'+
+    '<h3 style="margin-top:16px">Outcome terms on your results</h3>'+
+    '<p class="small"><b>Unmet demand</b> = demand above the guarantee, D − min(D, K). The fabless loses those sales.<br><b>Reserved capacity left unused</b> = guaranteed wafer starts nobody bought. They were taken from external customers and cannot be reassigned after demand is known.<br><b>Wafers purchased above demand</b> happen only under a minimum purchase, when D &lt; L. They are paid for and produced but have no salvage value.</p>'+
+    '<p class="small"><b>Private information:</b> the fabless’s sales revenue per wafer is hidden from the foundry, and the foundry’s production cost and external contribution are hidden from the fabless, unless the instructor releases them.</p>',
+    [{label:'Close',cls:''}],true);
+}
+function why(st,ext,pub,role){
+  const t={
+    request:'Your request is a ceiling: the foundry can protect any amount up to R, never more. Asking costs nothing by itself, because you pay only for wafers you actually buy.'+(pub?' The foundry also sees the signal, so it can check your request against the forecast.':' The foundry can’t see the signal, so it may treat your request as a hint about demand, and discount it if it looks inflated.'),
+    allocate:'Each wafer start you protect earns your manufacturing margin only if the fabless’s demand reaches it. Each one you leave for external customers earns a sure external contribution. After demand is revealed, unused protected capacity can’t be resold.'+(pub?'':' You don’t see the signal, so the request is your only clue.'),
+    propose:ext==='fee'?'The fee is paid whether or not demand uses the extra capacity. To be accepted it has to cover what the foundry gives up on the extra wafers, and to be worth it for you it has to stay below what the extra capacity is worth to you.'
+      :'A minimum purchase means you pay for at least L wafers even if demand comes in lower, and wafers bought above demand can’t be sold. In exchange, the foundry knows more of the extra capacity will be paid for.',
+    respond:ext==='fee'?'Accepting moves the extra wafer starts from external customers to the fabless. You collect the fee no matter what demand turns out to be, plus your margin on any extra wafers the fabless actually buys.'
+      :'Accepting moves the extra wafer starts from external customers to the fabless. In return the fabless pays for at least L wafers even if its demand is lower, plus any extra wafers its demand actually uses.'
+  }[st];
+  if(st==='respond'){
+    const base=role==='f'?(ext==='fee'?'The foundry is asking for different terms. Accepting means paying fee F whatever demand turns out to be, in exchange for the larger guarantee.':'The foundry is asking for different terms. Accepting means buying at least L wafers even if demand is lower, in exchange for the larger guarantee.'):t;
+    return '<div class="why"><b>Why it matters</b>'+base+' A counter-offer can improve the terms, but each one uses up an offer, the final offer can only be accepted or rejected, and if nobody agrees the original plan stands.</div>';
+  }
+  return t?'<div class="why"><b>Why it matters</b>'+t+'</div>':'';
+}
+function explainHTML(role,pairId,pos){
+  const step=plan[pos],ver=step.ver,ext=VERS[ver].ext,pub=VERS[ver].pub,o=resultFor(pos,pairId),r=RV[pos];
+  if(!o||!r)return '';
+  const f=role==='f',it=(c,t,p)=>'<div class="exi '+c+'"><b>'+t+'</b><p>'+p+'</p></div>';
+  const mine=f?o.fProfit:o.dProfit,base=f?o.base.fProfit:o.base.dProfit;
+  let h='';
+  // demand
+  h+=it('sig','Where demand came from','The signal was '+(r.S<0?'low (−60)':'high (+60)')+', so demand was always going to land between '+(r.S<0?'0 and 160':'120 and 280')+'. The remaining randomness ε = '+sgn(r.eps)+' put actual demand at <b>D = '+r.D+'</b> wafers.'+(!f&&!pub?' Your team did not see the signal this round; your only clue was the request of '+o.R+'.':''));
+  // guarantee
+  let g='The fabless requested '+o.R+' and the foundry protected <b>K0 = '+o.K0+'</b>.';
+  if(o.miss.length)g+=' A decision was missing ('+o.miss.join(', ')+'), so the default rule applied.';
+  if(ext){
+    if(!o.proposed)g+=' No proposal was made, so the guarantee stayed at '+o.K0+'.';
+    else if(o.acc)g+=' After '+o.nOff+' offer'+(o.nOff>1?'s':'')+', the '+(o.accBy==='d'?'foundry':'fabless')+' accepted '+(o.finBy==='f'?'the fabless’s':'the foundry’s')+' offer '+o.accOn+', raising the guarantee to <b>K = '+o.K+'</b> '+(ext==='fee'?'for a reservation fee of '+fmt(o.F)+'.':'with a minimum purchase of '+fmt(o.L)+' wafers.');
+    else g+=' The negotiation ended without agreement after '+o.nOff+' offer'+(o.nOff>1?'s':'')+' (last offer: K1 = '+o.K1+', '+(ext==='fee'?'fee ':'minimum ')+fmt(o.X)+'), so the guarantee stayed at '+o.K0+'.';
+  }
+  g+=' That left '+(C-o.K)+' wafer starts for external customers.';
+  h+=it(f?'fab':'fdy','How the guarantee was set',g);
+  // demand versus capacity
+  let m,mc;
+  if(r.D>o.K){
+    m='Demand ('+r.D+') was higher than the guarantee ('+o.K+'), so every protected wafer was used and <b>'+fmt(o.unmet)+' wafers of demand went unserved</b>.';
+    m+=f?' Each unserved wafer would have earned you 240 − 80 = 160, so the shortfall cost you <b>'+fmt(160*o.unmet)+'</b> in missed profit.'
+        :' Each of those wafers would have earned you 80 − 40 = 40 while costing 20 of external contribution, a net of +20 each. In this outcome a larger guarantee would have added up to <b>'+fmt(20*o.unmet)+'</b>.';
+    mc=f?'bad':'';
+  }else{
+    m='Demand ('+r.D+') fit within the guarantee ('+o.K+'), so no demand went unserved.';
+    if(o.unused>0)m+=' <b>'+fmt(o.unused)+' protected wafer starts went unused.</b>'+(f?(ext==='fee'&&o.F>0?' You pay no wholesale price on unused capacity, but part of the fee bought capacity you didn’t need this time.':' You pay nothing for unused capacity, so it cost you nothing directly.')
+        :' Each one could have earned 20 from external customers, so protecting them cost you <b>'+fmt(20*o.unused)+'</b>.');
+    else m+=' Every protected wafer was used.';
+    mc=o.unused>0&&!f?'bad':'good';
+  }
+  h+=it(mc,'Demand versus the guarantee',m);
+  // contract
+  if(ext&&o.proposed){
+    const extra=o.sold-o.base.sold,dK=(o.K1||0)-o.K0;let c='';
+    if(!o.acc)c=f?'No agreement was reached, so you paid nothing extra and kept K0 = '+o.K0+'. Your profit is the same as under the original plan.':'No agreement was reached, so the original plan stood and your profit is the same as under it.';
+    else{
+      const xp=o.purchased-o.base.purchased;
+      if(f)c=extra>0?'The extra '+dK+' wafer starts let you sell <b>'+fmt(extra)+'</b> more wafers in this outcome, worth '+fmt(160*extra)+' at 160 each.'
+        :'The extra '+dK+' wafer starts were not needed this time: demand ('+r.D+') did not exceed the original guarantee of '+o.K0+', so you sold no additional wafers.';
+      else c='The extra '+dK+' wafer starts cost you '+fmt(20*dK)+' of external contribution. '+(xp>0?'In return the fabless bought '+fmt(xp)+' more wafers from you, worth '+fmt(40*xp)+' at 40 each.':'The fabless bought no additional wafers this time.');
+      if(ext==='fee')c+=f?' You paid the fee of '+fmt(o.F)+' regardless.':' You also collected the fee of '+fmt(o.F)+'.';
+      else{
+        if(o.excess>0)c+=f?' Demand ('+r.D+') came in below your commitment ('+o.L+'), so you bought <b>'+fmt(o.excess)+' wafers above demand</b> at 80 each ('+fmt(80*o.excess)+') that could not be sold.'
+                        :' Demand ('+r.D+') came in below the commitment ('+o.L+'), so the fabless still paid for '+o.L+' wafers, '+fmt(o.excess)+' more than it could sell. That is the protection the commitment gives you.';
+        else c+=' Demand ('+r.D+') was at or above the commitment ('+o.L+'), so the minimum purchase did not bind and cost nothing extra this time.';
+      }
+      c+=' <b>Net effect versus the original plan: '+sgn(mine-base)+'.</b>';
+      if(ext==='fee')c+=' The fee itself only moves money between the two companies. It does not change how many wafers are made or sold.';
+      else if(o.excess>0)c+=' Wafers bought above demand were produced but never sold, so they lowered the combined profit of the supply chain.';
+    }
+    h+=it(o.acc?(mine>=base?'good':'bad'):'',ext==='fee'?'What the reservation fee did':'What the minimum purchase did',c);
+  }
+  // luck versus decision
+  const e=expProfit(role,o.K,o.F,o.L,r.S),d=mine-e;
+  h+=it('','Decision versus luck','Given the signal'+(!f&&!pub?' (which your team did not see at the time)':'')+', the expected profit of the final agreement was <b>'+fmt(e)+'</b>. You earned <b>'+fmt(mine)+'</b>, so the random part of demand '+(d>=0?'added ':'cost you ')+fmt(Math.abs(d))+'. A sound decision can still meet bad luck, so compare choices by their expected profit, not by one round.');
+  // what-if with the same demand
+  const alt=dk=>{const K2=Math.max(0,Math.min(C,o.K+dk));if(K2===o.K)return null;const L2=Math.min(o.L,K2),x=econ(K2,o.F,L2,r.D);return {K:K2,v:f?x.fProfit:x.dProfit};};
+  const a1=alt(20),a2=alt(-20);const parts=[];
+  if(a2)parts.push('K = '+a2.K+' would have given you '+fmt(a2.v));
+  if(a1)parts.push('K = '+a1.K+' would have given you '+fmt(a1.v));
+  if(parts.length)h+=it('','Same demand, different guarantee','Holding demand at '+r.D+' and other terms fixed, '+parts.join(', and ')+'. In hindsight the ideal guarantee is always exactly the demand, but it has to be chosen before demand is known.');
+  // optional benchmark insight
+  if(G.insights){
+    const kI=pub?(r.S<0?80:200):140,kE=r.S<0?144:264,pv=k=>{const x=econ(k,0,0,r.D);return f?x.fProfit:x.dProfit;};
+    h+=it('sig','Benchmark comparison (released by your instructor)','A foundry maximizing its own expected profit protects K = '+kI+' here ('+(pub?'the median of demand given the signal':'the median of demand before the signal is known')+'). The guarantee that maximizes combined supply-chain profit is K = '+kE+' (the 90th percentile given the signal). With this same demand, your company would have earned '+fmt(pv(kI))+' at K = '+kI+' and '+fmt(pv(kE))+' at K = '+kE+', before any fee or commitment. Expected values given the signal: '+fmt(expProfit(role,kI,0,0,r.S))+' and '+fmt(expProfit(role,kE,0,0,r.S))+'.');
+  }
+  return h;
+}
+function versionSummary(role,pairId,ver){
+  const c=cumFor(pairId,ver),mine=role==='f'?c.f:c.d,idx=role==='f'?0:1;
+  let s='<p>Across the rounds of the '+esc(GUIDE[ver].title.toLowerCase())+', your company earned <b class="num">'+fmt(mine)+'</b> over '+c.n+' round'+(c.n===1?'':'s')+(c.n?' (an average of <b class="num">'+fmt(mine/c.n)+'</b> per round)':'')+'.</p>';
+  s+='<div class="why"><b>Key idea</b>'+GUIDE[ver].lesson+'</div>';
+  if(G.insights){const b=BENCH[ver];s+='<p class="small">Benchmark expected profit per round for your company: '+(b.ind?'independent allocation <b class="num">'+fmt(b.ind[idx])+'</b>':'')+(b.eff?', efficient allocation before any payment <b class="num">'+fmt(b.eff[idx])+'</b>':'')+'.</p>';}
+  return s;
+}
+/* ---------- views ---------- */
+function brand(){return '<button class="brand" data-act="title" aria-label="Fab-Rush title page"><div class="mark">'+wafer(false,26,20)+'</div><div class="word disp">Fab-Rush</div></button>';}
+let showTitle=true;
+function titleView(){
+  const seated=!isInst&&seatOf(uid);
+  let go='';
+  if(isInst){
+    if(G)go+='<button class="btn xl ghost" data-act="title-enter">Resume session</button>';
+    go+='<button class="btn xl main" data-act="title-new">Start a new game</button>';
+  }else go+='<button class="btn xl main" data-act="title-enter">'+(standalone&&!NS?'Get started':(seated?'Continue playing':'Join the game'))+'</button>';
+  if(standalone&&NS)go+='<button class="btn xl ghost" data-act="leave">Switch class</button>';
+  return '<div class="title"><div class="inner">'+wafer(true,13,10)+'<h1 class="disp">Fab-Rush</h1>'+
+    '<p class="tag">A semiconductor supply chain game. Reserve capacity before demand shows up.</p>'+
+    '<div class="facts"><span class="f">Fabless</span><span class="d">Foundry</span><span>280 wafer starts</span><span>4 versions</span></div>'+
+    '<div class="go">'+go+'<button class="btn xl ghost" data-act="guide">How the game works</button></div>'+(Store.mode==='local'?'<p class="small muted" style="margin-top:14px">'+(standalone?'Browser-only mode: all teams play in this browser, one tab each.':'Solo preview: data stays in this tab.')+'</p>':'')+'</div></div>';
+}
+function topbar(ctx){
+  let st='';
+  if(G){
+    const step=curStep();
+    if(step)st+='<span class="chip">'+esc(VERS[step.ver].name+' · '+VERS[step.ver].sub)+'</span><span class="chip">'+esc(stepLabel(step))+'</span>';
+    if(['request','allocate','propose','respond'].includes(G.stage))st+='<span class="chip live">Open: '+({request:'request',allocate:'allocation',propose:'proposal',respond:'negotiation'}[G.stage])+' <span id="timer" class="timer"></span></span>';
+  }
+  let who='';
+  if(isInst){
+    who='<div class="seg" role="group" aria-label="View"><button data-act="tab" data-v="console" aria-pressed="'+(view.tab==='console')+'">Instructor console</button><button data-act="tab" data-v="team" aria-pressed="'+(view.tab==='team')+'">Team view</button></div>';
+  }else if(ctx){
+    who='<span class="chip '+ctx.role+'">'+esc(ctx.pair.name)+' · '+(ctx.role==='f'?'Fabless':'Foundry')+' · '+esc((ctx.role==='f'?ctx.pair.f:ctx.pair.d).team)+'</span>';
+  }
+  st+='<button class="chip chipbtn" data-act="guide">Game guide</button>';
+  if(standalone&&NS)st+='<span class="chip">Class <b class="num">'+esc(NS)+'</b></span><button class="chip chipbtn" data-act="leave">Leave class</button>';
+  return '<header class="top">'+brand()+'<div class="status">'+st+who+'</div></header>'+
+    (Store.mode==='local'?'<div class="banner">'+(standalone?'Browser-only mode: this copy is not connected to an online database, so every team must play in this browser (one tab per team). Follow SETUP.md to let students join from their own devices.':'Solo preview: data stays in this tab. Open the published link from claude.ai to play live with teams.')+'</div>':'');
+}
+function loadingView(){return '<div class="hero"><div>'+wafer(true)+'</div><div><h1 class="disp">Fab-Rush</h1><p class="muted">Connecting to the fab…</p></div></div>';}
+function heroBlock(extra){
+  return '<div class="hero"><div>'+wafer(true)+'</div><div><h1 class="disp">Fab-Rush</h1>'+
+    '<p>Two companies, one fab, 280 wafer starts a year. Reserve capacity before demand shows up, or lose it to someone else.</p>'+(extra||'')+'</div></div>';
+}
+function joinView(){
+  const team=lsGet('fr_team')||'';
+  if(joinPending)return heroBlock('<h2 style="margin-top:0">Placing your team…</h2><p class="muted">Your instructor’s screen is assigning you as the <b>Fabless</b> or <b>Foundry</b> company of a supply chain. This takes a few seconds.</p><p class="small muted">If nothing happens, check that your instructor has the game open.</p><div class="row"><button class="btn ghost" data-act="rejoin">Change team name</button></div>');
+  return heroBlock('<p class="muted">Enter your team name. You will be placed automatically as the <b>Fabless</b> or <b>Foundry</b> company of a supply chain; each supply chain pairs one fabless team with one foundry team.</p>'+
+    '<label class="fld" for="teamname">Team name</label><input type="text" id="teamname" maxlength="28" value="'+esc(team)+'" placeholder="e.g. Silicon Sprinters">'+
+    '<div class="row" style="margin-top:14px"><button class="btn" data-act="autojoin">Join the game</button></div>'+
+    '<p class="small muted" style="margin-top:10px">Teammates on other devices: type exactly the same team name to join your team.</p>');
+}
+function gateView(){
+  const local=Store.mode==='local';
+  return heroBlock('<p class="muted">Students join with the class code from their instructor. Instructors create a class or reopen one.</p>')+
+    (local?'<div class="banner">Browser-only mode: this copy is not connected to an online database yet. Every team must use this browser (one tab per team). Follow SETUP.md to play on separate devices.</div>':'')+
+    '<div class="grid2"><div class="col"><section class="panel"><h2>Join your class</h2>'+
+    '<label class="fld" for="g-code">Class code</label><input type="text" id="g-code" maxlength="10" value="'+esc(gatePrefill||'')+'" placeholder="e.g. K7QF3M" style="text-transform:uppercase;letter-spacing:.12em;font-weight:700">'+
+    '<div class="row" style="margin-top:14px"><button class="btn" data-act="g-join">Join class</button></div><div class="msg err">'+esc(gateMsg.join||'')+'</div></section></div>'+
+    '<div class="col"><section class="panel"><h2>Instructor</h2><p class="small muted">Create a class with a passcode, or open your class on another device with its code and passcode.</p>'+
+    '<label class="fld" for="g-pin">Instructor passcode</label><input type="password" id="g-pin" maxlength="40" autocomplete="off" placeholder="At least 6 characters">'+
+    '<label class="fld" for="g-icode">Class code (only to open an existing class)</label><input type="text" id="g-icode" maxlength="10" style="text-transform:uppercase">'+
+    '<div class="row" style="margin-top:14px"><button class="btn f" data-act="g-create">Create a new class</button><button class="btn ghost" data-act="g-open">Open my class</button></div>'+
+    '<div class="msg err">'+esc(gateMsg.inst||'')+'</div></section></div></div>';
+}
+function waitingView(msg){return heroBlock('<p class="muted">'+msg+'</p>');}
+function setupView(){
+  return heroBlock()+'<div class="panel"><h2>Create a session</h2><p class="muted small">One practice round comes first. Each of the four versions then runs for the number of rounds you choose.</p>'+
+    '<label class="fld" for="s-n">Scored rounds per version</label><input type="number" id="s-n" min="1" max="8" value="4">'+
+    '<label class="fld" for="s-pc">Supply chains to prepare now</label><input type="number" id="s-pc" min="0" max="40" value="0"><p class="small muted" style="margin:4px 0 0">0 is fine: supply chains are created automatically as teams join, each with one fabless and one foundry team.</p>'+
+    '<label class="fld" for="s-t">Decision timer in seconds (0 for none)</label><input type="number" id="s-t" min="0" max="900" value="90">'+
+    '<label class="fld" for="s-seed">Random seed</label><input type="text" id="s-seed" maxlength="40" value="" placeholder="Leave blank for a new random seed" style="width:260px">'+
+    '<p class="small muted" style="margin:4px 0 0">The same seed and number of rounds always produce the same signals and demand, so you can rerun a session or give two sections identical scenarios.</p>'+
+    '<label class="fld" style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="s-rep" > Use the same demand sequence in every version</label>'+
+    '<p class="small muted" style="margin:4px 0 0">When checked, round 1 of every version has the same signal and demand, round 2 the same, and so on. Teams can then compare versions directly. Unchecked, every round is an independent draw.</p>'+
+    '<div class="row" style="margin-top:16px"><button class="btn" data-act="create">Create session</button></div></div>';
+}
+
+function steps(){
+  const step=curStep(),ext=step&&VERS[step.ver].ext;
+  const names=ext?['Signal','Request','Allocation','Proposal','Negotiation','Demand','Results']:['Signal','Request','Allocation','Demand','Results'];
+  const map=ext?{ready:0,request:1,allocate:2,propose:3,respond:4,locked:5,settled:6}:{ready:0,request:1,allocate:2,locked:3,settled:4};
+  const cur=map[G.stage];
+  return '<div class="steps" aria-label="Round progress">'+names.map((n,i)=>'<span class="step'+(i<cur||G.stage==='settled'?' done':i===cur?' now':'')+'">'+n+'</span>').join('')+'</div>';
+}
+function setDraftDefaults(role,pairId){
+  const mv=mvOf(G.pos,pairId),nOff=offersOf(mv).length;
+  const key=G.sid+'_'+G.pos+'_'+G.stage+'_'+role+'_'+pairId+'_'+nOff+'#'+attNow();
+  if(key===draftKey)return;draftKey=key;draft={};
+  if(G.stage==='request')draft.R=140;
+  if(G.stage==='allocate'){const R=mv.req?mv.req.R:0;draft.K0=Math.round(R/2);}
+  if(G.stage==='propose'){const K0=mv.alloc?mv.alloc.K0:0;draft.K1=Math.min(C,K0+20);draft.X=0;}
+  if(G.stage==='respond'&&nOff){const l=offersOf(mv)[nOff-1];draft.K1=l.K1;draft.X=l.X;}
+}
+function slider(k,min,max,val,label){
+  return '<label class="fld" for="n-'+k+'">'+label+'</label><div class="ctl"><input type="range" data-d="'+k+'" id="r-'+k+'" min="'+min+'" max="'+max+'" value="'+val+'" aria-label="'+esc(label)+' slider"><input type="number" data-d="'+k+'" id="n-'+k+'" min="'+min+'" max="'+max+'" value="'+val+'"></div>';
+}
+function decisionCard(role,pairId,canAct){
+  const step=curStep(),ver=step.ver,ext=VERS[ver].ext,st=G.stage,mv=mvOf(G.pos,pairId);
+  setDraftDefaults(role,pairId);
+  const band='<div class="roleband '+role+'"><span class="disp">'+(role==='f'?'Fabless':'Foundry')+'</span><span>'+(role==='f'?'Designs and sells chips. Keeps the revenue, pays for wafers.':'Runs the fab. Splits capacity between the fabless and external customers.')+'</span></div>';
+  let h=band+steps(),body='',lock='';
+  const sBadge=()=>{const S=knownS(role);return S===null?'<p class="small muted">You do not see the demand signal this round.</p>':'<p><span class="pill '+role+'">Signal '+(S<0?'low (−60)':'high (+60)')+'</span> Demand will fall in '+(S<0?'0–160':'120–280')+'.</p>';};
+  if(st==='lobby')body='<h2>Waiting to start</h2><p class="muted">The instructor will open the practice round. Look over the information on the right in the meantime.</p>';
+  else if(st==='ready')body='<h2>Next round is being prepared</h2><p class="muted">The instructor will open it shortly.</p>';
+  else if(st==='request'){
+    if(role==='f'){
+      if(mv.req)body='<h2>Request locked</h2><p>You requested <b class="num">'+mv.req.R+'</b> wafer starts. Waiting for the foundry to respond.</p>'+sBadge();
+      else body='<h2>Request capacity</h2>'+sBadge()+why('request',ext,VERS[ver].pub)+slider('R',0,C,draft.R,'Capacity request (wafer starts)')+'<div class="msg" id="msg"></div><div class="row"><button class="btn f" id="go" data-act="sub-req">Lock request</button></div>';
+    }else body='<h2>Waiting for the fabless request</h2>'+sBadge()+(mv.req?'<p>Request received: <b class="num">'+mv.req.R+'</b> wafer starts.</p>':'');
+  }else if(st==='allocate'){
+    if(role==='d'){
+      if(mv.alloc)body='<h2>Allocation locked</h2><p>You protected <b class="num">'+mv.alloc.K0+'</b> wafer starts for the fabless. <b class="num">'+(C-mv.alloc.K0)+'</b> go to external customers.</p>';
+      else if(!mv.req)body='<h2>No request received</h2><p class="muted">The fabless has not submitted a request. If none arrives, the allocation defaults to 0.</p>';
+      else body='<h2>Allocate capacity</h2><p>The fabless requested <b class="num">'+mv.req.R+'</b>. You may protect anything from 0 to that.</p>'+sBadge()+
+        (VERS[ver].pub?'':'<p class="small muted">A request is not a forecast. Ask yourself what it tells you, and whether you can trust it.</p>')+why('allocate',ext,VERS[ver].pub)+
+        slider('K0',0,mv.req.R,draft.K0,'Capacity guarantee K0 (wafer starts)')+'<div class="msg" id="msg"></div><div class="row"><button class="btn d" id="go" data-act="sub-alloc">Lock allocation</button></div>';
+    }else body='<h2>Waiting for the foundry</h2><p>'+(mv.alloc?'The foundry allocated <b class="num">'+mv.alloc.K0+'</b> wafer starts.':'You requested <b class="num">'+(mv.req?mv.req.R:'–')+'</b>. The allocation will appear here.')+'</p>';
+  }else if(st==='propose'){
+    const K0=mv.alloc?mv.alloc.K0:0;
+    if(role==='f'){
+      if(mv.prop)body='<h2>'+(mv.prop.skip?'Original plan kept':'Proposal sent')+'</h2>'+(mv.prop.skip?'<p>No proposal this round. Your guarantee stays at '+K0+'.</p>':'<p>'+stmtText(ext,K0,mv.prop.K1,mv.prop.X)+'</p><p class="muted">Waiting for the foundry to respond.</p>');
+      else if(K0>=C)body='<h2>No room to propose</h2><p>You already hold all '+C+' wafer starts.</p>';
+      else body='<h2>Propose a revised agreement</h2><p>Your current guarantee is <b class="num">'+K0+'</b>. One proposal, one response. If it is rejected, the original plan stands.</p>'+sBadge()+why('propose',ext,true)+
+        slider('K1',K0+1,C,draft.K1,'Larger guarantee K1')+
+        (ext==='fee'?'<label class="fld" for="n-X">Reservation fee F (paid on top of wafers you buy)</label><div class="ctl"><input type="number" data-d="X" id="n-X" min="0" value="'+draft.X+'"></div>'
+                    :slider('X',0,draft.K1,Math.min(draft.X,draft.K1),'Minimum purchase L (wafers you commit to buy)'))+
+        '<p class="small" id="stmt"></p><div class="msg" id="msg"></div><div class="row"><button class="btn f" id="go" data-act="sub-prop">Send proposal</button><button class="btn ghost" data-act="sub-skip">Keep original plan</button></div>';
+    }else body='<h2>Waiting for the fabless proposal</h2>'+(mv.prop?(mv.prop.skip?'<p>The fabless kept the original plan.</p>':'<p>'+stmtText(ext,K0,mv.prop.K1,mv.prop.X)+'</p>'):'<p class="muted">Your current allocation is '+K0+'.</p>');
+  }else if(st==='respond'){
+    const K0=mv.alloc?mv.alloc.K0:0,offs=offersOf(mv),n=offs.length,turn=negTurn(mv),mx=NEGMAX();
+    const party=r=>r==='f'?'fabless':'foundry';
+    if(!n)body=role==='d'?'<h2>Nothing to decide</h2><p>The fabless made no proposal. The original allocation of '+K0+' stands.</p>':'<h2>No proposal this round</h2><p>Your guarantee stays at '+K0+'.</p>';
+    else if(mv.resp){const o=outcome(ver,mv,0);
+      body='<h2>'+(o.acc?'Agreement reached':'No agreement')+'</h2><p>'+(o.acc?'The '+party(o.accBy)+(o.accBy===role?' (you)':'')+' accepted offer '+o.accOn+'. The guarantee rises from '+K0+' to <b class="num">'+o.K1+'</b>.':'The '+party(o.endBy)+(o.endBy===role?' (you)':'')+' rejected offer '+n+'. The original plan stands: guarantee '+K0+'.')+'</p>'+negThread(ext,offs,mv.resp,role);}
+    else if(turn===role){
+      const last=offs[n-1],canC=n<mx;
+      body='<h2>'+(n===1?'Respond to the fabless’s proposal':'Respond to the '+party(last.by)+'’s counter-offer')+'</h2>'+
+        '<p class="small muted">Offer '+n+' of '+mx+'. '+(canC?'You can accept, reject, or make a counter-offer.':'This is the final offer, so you can only accept or reject it.')+'</p>'+
+        negThread(ext,offs,null,role)+
+        '<table class="stmt"><tr><th></th><th class="r">Original plan</th><th class="r">Offer '+n+'</th></tr>'+
+        '<tr><td>Fabless guarantee</td><td class="num r">'+K0+'</td><td class="num r">'+last.K1+'</td></tr>'+
+        '<tr><td>External capacity</td><td class="num r">'+(C-K0)+'</td><td class="num r">'+(C-last.K1)+'</td></tr>'+
+        '<tr><td>'+(ext==='fee'?'Reservation fee':'Minimum purchase')+'</td><td class="num r">0</td><td class="num r">'+fmt(last.X)+'</td></tr></table>'+
+        sBadge()+why('respond',ext,true,role)+
+        '<div class="row" style="margin-top:12px"><button class="btn '+role+'" data-act="sub-resp" data-v="1">Accept offer '+n+'</button><button class="btn ghost" data-act="sub-resp" data-v="0">Reject</button></div>'+
+        (canC?'<div class="cform"><h3>Or make counter-offer '+(n+1)+' of '+mx+'</h3>'+(n+1===mx?'<p class="small muted">The '+party(role==='f'?'d':'f')+' will only be able to accept or reject it.</p>':'')+
+          slider('K1',K0+1,C,draft.K1,'Guarantee K1')+
+          (ext==='fee'?'<label class="fld" for="n-X">Reservation fee F</label><div class="ctl"><input type="number" data-d="X" id="n-X" min="0" value="'+draft.X+'"></div>'
+                      :slider('X',0,draft.K1,Math.min(draft.X,draft.K1),'Minimum purchase L'))+
+          '<p class="small" id="stmt"></p><div class="msg" id="msg"></div><div class="row"><button class="btn ghost" id="go" data-act="sub-counter">Send counter-offer</button></div></div>':'');
+    }else body='<h2>Waiting for the '+party(turn)+'</h2><p class="small muted">Offer '+n+' of '+mx+' is on the table. The '+party(turn)+' can '+(n<mx?'accept, reject, or counter.':'only accept or reject it.')+'</p>'+negThread(ext,offs,null,role);
+  }else if(st==='locked'){
+    body='<h2>All decisions locked</h2><p class="muted">Waiting for the instructor to reveal demand.</p>';
+  }else if(st==='settled'){
+    body=resultsBlock(role,pairId);
+  }
+  if(!canAct&&['request','allocate','propose','respond'].includes(st))body+='<p class="small muted">You are viewing this team as instructor. Actions apply to this team.</p>';
+  return '<section class="panel">'+h+body+'</section>';
+}
+function negThread(ext,offs,resp,role){
+  const on=resp?Math.min(offs.length,Math.max(1,Number(resp.on)||offs.length)):0;
+  return '<ol class="thread" aria-label="Negotiation so far">'+offs.map((o,i)=>{
+    const tag=resp&&i+1===on?(resp.accept?' <span class="pill ok">accepted</span>':' <span class="pill flag">rejected</span>'):'';
+    return '<li class="'+(o.by==='f'?'tf':'td')+'"><b>Offer '+(i+1)+': '+(o.by==='f'?'Fabless':'Foundry')+(o.by===role?' (you)':'')+'</b>'+tag+'<span class="num">K1 '+o.K1+', '+(ext==='fee'?'fee ':'minimum ')+fmt(o.X)+'</span></li>';}).join('')+'</ol>';
+}
+function stmtText(ext,K0,K1,X,by){
+  if(by==='d')return ext==='fee'?'The foundry will raise the guarantee from <b class="num">'+K0+'</b> to <b class="num">'+K1+'</b> for a reservation fee of <b class="num">'+fmt(X)+'</b>.'
+    :'The foundry will raise the guarantee from <b class="num">'+K0+'</b> to <b class="num">'+K1+'</b> if the fabless commits to buying at least <b class="num">'+fmt(X)+'</b> wafers.';
+  return ext==='fee'?'The fabless will pay a reservation fee of <b class="num">'+fmt(X)+'</b> if the foundry raises its guarantee from <b class="num">'+K0+'</b> to <b class="num">'+K1+'</b>.'
+    :'The fabless will commit to buying at least <b class="num">'+fmt(X)+'</b> wafers if the foundry raises its guarantee from <b class="num">'+K0+'</b> to <b class="num">'+K1+'</b>.';
+}
+function row(l,v,c,sub){return '<tr'+(sub?' class="sub"':'')+'><td>'+l+'</td><td class="num '+(c||'')+'">'+v+'</td></tr>';}
+function resultsBlock(role,pairId){
+  const step=curStep(),ver=step.ver,ext=VERS[ver].ext,o=resultFor(G.pos,pairId),r=RV[G.pos];
+  if(!o)return '';
+  const mine=role==='f'?o.fProfit:o.dProfit,base=role==='f'?o.base.fProfit:o.base.dProfit;
+  const cum=gameTotal(pairId),cumMine=role==='f'?cum.f:cum.d;
+  let t='<h2>Round results</h2><div class="kpis"><div class="kpi '+(mine>0?'pos':mine<0?'neg':'')+'"><span class="big num '+cls(mine)+'" data-count="'+mine+'" data-ckey="'+G.sid+'_'+G.pos+'_'+pairId+'_'+role+'_r">'+fmt(mine)+'</span><span class="small muted">Round profit</span></div>'+
+    (step.practice?'<div class="kpi"><span class="small muted">Practice round: not scored.</span></div>':'<div class="kpi"><span class="big num" data-count="'+cumMine+'" data-from="'+(cumMine-mine)+'" data-ckey="'+G.sid+'_'+G.pos+'_'+pairId+'_'+role+'_c">'+fmt(cumMine)+'</span><span class="small muted">Total in this game</span></div>')+'</div>';
+  t+='<table class="stmt">'+row('Signal / error / demand','S = '+sgn(r.S)+' · ε = '+sgn(r.eps)+' · D = '+r.D);
+  t+=row(role==='f'?'Your request → foundry allocation':'Fabless request → your allocation',o.R+' → '+o.K0);
+  if(ext){t+=row('Negotiation',o.proposed?(o.nOff+' offer'+(o.nOff>1?'s':'')+', '+(o.acc?'agreed on offer '+o.accOn+' ('+(o.finBy==='f'?'fabless':'foundry')+' terms)':'no agreement')):'No proposal');
+    if(o.proposed)t+=row(o.acc?'Agreed terms':'Last offer','K1 = '+o.K1+', '+(ext==='fee'?'fee ':'min ')+fmt(o.X));}
+  t+=row('Final capacity guarantee K',o.K);
+  if(role==='f'){
+    t+=row('Wafers purchased',fmt(o.purchased))+row('Wholesale payment','−'+fmt(W*o.purchased),'neg')+
+      row('Sales (wafer equivalents)',fmt(o.sold))+row('Sales revenue','+'+fmt(P*o.sold),'pos')+row('Unmet demand',fmt(o.unmet),'',true);
+    if(ext==='fee')t+=row('Reservation fee paid',o.F?'−'+fmt(o.F):'0',o.F?'neg':'');
+    if(ext==='min')t+=row('Excess purchase (above demand)',fmt(o.excess),o.excess?'neg':'',true);
+    t+=row('Reserved capacity left unused',fmt(o.unused),'',true);
+  }else{
+    t+=row('Wafers produced for the fabless',fmt(o.purchased))+row('Wholesale revenue','+'+fmt(W*o.purchased),'pos')+row('Production cost','−'+fmt(COST*o.purchased),'neg')+
+      row('External allocation',(C-o.K)+' wafer starts')+row('External contribution','+'+fmt(B*(C-o.K)),'pos')+row('Reserved capacity left unused',fmt(o.unused),'',true);
+    if(ext==='fee')t+=row('Reservation fee received',o.F?'+'+fmt(o.F):'0',o.F?'pos':'');
+  }
+  t+='<tr class="tot"><td>Round profit</td><td class="num '+cls(mine)+'">'+fmt(mine)+'</td></tr></table>';
+  if(ext){const dl=mine-base;t+='<p class="small" style="margin-top:10px"><b>Versus the original plan (K = '+o.K0+', same demand):</b> profit would have been <span class="num">'+fmt(base)+'</span>. The agreement '+(o.acc?'changed it by <b class="num '+cls(dl)+'">'+sgn(dl)+'</b>.':'was not accepted, so nothing changed.')+'</p>';}
+  t+='<details class="ex" id="det-explain"'+detOpen('det-explain',true)+'><summary><span style="font-size:16px">What happened and why</span></summary>'+explainHTML(role,pairId,G.pos)+'</details>';
+  if(G.release&&G.release.profits){const other=role==='f'?o.dProfit:o.fProfit;t+='<p class="small">Counterparty round profit: <b class="num">'+fmt(other)+'</b> · combined: <b class="num">'+fmt(o.fProfit+o.dProfit)+'</b></p>';}
+  return t;
+}
+function infoSheet(role){
+  const step=curStep(),ver=step?step.ver:'private',rel=G&&G.release&&G.release.params;
+  const hid='<span class="hid">Hidden</span>';
+  const show=(own,v)=>own||rel?'<b class="num">'+v+'</b>':hid;
+  return '<section class="panel"><h3>What you know</h3><div class="kv small">'+
+    '<span>Wafer-start capacity C</span><b class="num">280</b><span>Wholesale price w</span><b class="num">80</b>'+
+    '<span>Demand model</span><b>D = 140 + S + ε</b><span>Signal S</span><b>−60 or +60, equally likely</b><span>Error ε</span><b>Uniform[−80, 80]</b>'+
+    '<span>Fabless revenue per wafer p</span>'+show(role==='f',240)+'<span>Foundry production cost c</span>'+show(role==='d',40)+'<span>External contribution b</span>'+show(role==='d',20)+
+    '<span>Actual signal this version</span><b>'+(role==='f'||VERS[ver].pub?'Visible':'Fabless only')+'</b><span>Actual demand and error</span><b>Hidden until settlement</b></div></section>';
+}
+function formulas(role){
+  return '<details class="panel" id="det-formulas"'+detOpen('det-formulas',false)+'><summary>Accounting formulas</summary><div class="small" style="margin-top:8px">'+(role==='f'
+    ?'<p>Wafers purchased = min(D, K), or max(L, min(D, K)) under an accepted minimum purchase.</p><p>Profit = 240 × sales − 80 × wafers purchased − reservation fee F.</p><p>Sales = min(D, K). Wafers bought above demand have zero salvage value.</p>'
+    :'<p>Wafers produced = wafers the fabless purchases.</p><p>Profit = (80 − 40) × wafers produced + 20 × (280 − K) + reservation fee F received.</p><p>Reserved capacity that goes unused cannot be reassigned to external customers after demand is revealed.</p>')+'</div></details>';
+}
+function whatIf(role,pairId){
+  if(!G.calc)return '';
+  const st=G.stage,mv=mvOf(G.pos,pairId),step=curStep(),ver=step.ver,ext=VERS[ver].ext,S=knownS(role);
+  let h='';
+  if(st==='allocate'&&role==='d'&&draft.K0!=null)h='Expected foundry profit at K0 = '+draft.K0+': <b class="num">'+fmt(expProfit('d',draft.K0,0,0,S))+'</b>'+(S===null?' (using the prior demand distribution)':'');
+  else if(st==='request'&&role==='f'&&draft.R!=null)h='Expected profit if the foundry grants all '+draft.R+': <b class="num">'+fmt(expProfit('f',draft.R,0,0,S))+'</b>';
+  else if(st==='propose'&&role==='f'&&mv.alloc&&draft.K1>mv.alloc.K0&&S!==null){const K0=mv.alloc.K0,F=ext==='fee'?draft.X:0,L=ext==='min'?draft.X:0;
+    h='Expected change in your profit if accepted: <b class="num">'+sgn(expProfit('f',draft.K1,F,L,S)-expProfit('f',K0,0,0,S))+'</b>';}
+  else if(st==='respond'&&negTurn(mv)===role&&S!==null){const K0=mv.alloc?mv.alloc.K0:0,offs=offersOf(mv),p=offs[offs.length-1],ev=(K1,X)=>sgn(expProfit(role,K1,ext==='fee'?X:0,ext==='min'?X:0,S)-expProfit(role,K0,0,0,S));
+    h='Expected change in your profit if you accept offer '+offs.length+': <b class="num">'+ev(p.K1,p.X)+'</b>';
+    if(offs.length<NEGMAX()&&draft.K1>K0&&!checkProp(K0,draft.K1,draft.X,ext))h+='<br>If your counter-offer (K1 '+draft.K1+', '+(ext==='fee'?'fee ':'minimum ')+fmt(draft.X)+') is accepted: <b class="num">'+ev(draft.K1,draft.X)+'</b>';}
+  return h?'<div class="panel small" id="whatif">'+h+'<div class="muted">Estimate set up by your instructor. It uses only what your company knows.</div></div>':'<div id="whatif"></div>';
+}
+function visPanels(role,pairId){
+  const vs=visState(role,pairId);
+  if(visMode==='wafer')return '<section class="panel"><div class="cardhead"><h3>Wafer level</h3><button class="btn sm ghost" data-act="vis" data-v="tiles">Classic tiles</button></div>'+
+    '<p class="wf-hint">Each die is one wafer start. The wafer fills from the bottom. The teal bracket shows where demand could land on the same scale.</p><div id="vis-wafer">'+waferBlock(vs)+'</div></section>';
+  return '<section class="panel"><div class="cardhead"><h3>Possible demand</h3><button class="btn sm ghost" data-act="vis" data-v="wafer">Wafer view</button></div><div id="vis-demand">'+demandSVG(vs.demand)+'</div></section>'+
+    '<section class="panel"><h3>Capacity map</h3><div id="vis-map">'+mapSVG(vs.tiles)+'</div></section>';
+}
+function historyCard(role,pairId){
+  let rows='';
+  for(let pos=0;pos<plan.length;pos++){if(!RV[pos]||!sameGame(pos))continue;const o=resultFor(pos,pairId),s=plan[pos],r=RV[pos];
+    const mine=role==='f'?o.fProfit:o.dProfit;
+    rows+='<tr><td>'+esc(s.practice?'Practice':({private:'Private',public:'Public',fee:'Fee',min:'Min. purchase'}[s.ver])+' R'+s.r)+'</td><td class="num">'+sgn(r.S)+'</td><td class="num r">'+r.D+'</td><td class="num r">'+o.R+'</td><td class="num r">'+o.K0+'</td><td class="num">'+(o.proposed?('K1 '+o.K1+' · '+fmt(o.X)+(o.acc?' ✓':' ✗')+(o.nOff>1?' · '+o.nOff+' offers':'')):'–')+'</td><td class="num r">'+o.K+'</td><td class="num r '+cls(mine)+'">'+fmt(mine)+'</td><td><button class="btn sm ghost" data-act="explain" data-pos="'+pos+'" aria-label="Explain this round">Why?</button></td></tr>';}
+  const c=gameTotal(pairId);
+  return '<section class="panel"><h3>Round history'+(curStep()?': '+esc(gameName()):'')+'</h3>'+(rows?'<div class="scroll"><table class="data hist"><tr><th>Round</th><th>Signal</th><th class="r">Demand</th><th class="r">Req.</th><th class="r">K0</th><th>Proposal</th><th class="r">Final K</th><th class="r">Profit</th><th></th></tr>'+rows+'</table></div><p class="small">Total in this game: <b class="num">'+fmt(role==='f'?c.f:c.d)+'</b></p>':'<p class="muted small">Completed rounds of this game will appear here.</p>')+'</section>';
+}
+function notesCard(){
+  return '<details class="panel" id="det-notes"'+detOpen('det-notes',false)+'><summary>Private notes</summary><textarea id="notes" aria-label="Private notes" placeholder="Only you can see this. Saved in this browser.">'+esc(lsGet('fr_notes')||'')+'</textarea></details>';
+}
+function classResults(pairId){
+  if(!(G.release&&G.release.profits))return '';
+  if(!isInst){const b=board&&board.sid===G.sid?board.rows||[]:[];if(!b.length)return '';
+    const rows=b.map(r=>'<tr'+(r.id===pairId?' style="font-weight:800"':'')+'><td>'+esc(r.name)+'</td><td style="white-space:normal">'+esc(r.teams)+'</td><td class="num r">'+fmt(r.f)+'</td><td class="num r">'+fmt(r.d)+'</td><td class="num r">'+fmt(r.t)+'</td></tr>').join('');
+    return '<section class="panel"><h3>Class results'+(board.game?': '+esc(board.game):'')+'</h3><div class="scroll"><table class="data"><tr><th>Supply chain</th><th>Teams</th><th class="r">Fabless</th><th class="r">Foundry</th><th class="r">Combined</th></tr>'+rows+'</table></div></section>';}
+  let rows='';for(const p of activePairs()){const c=gameTotal(p.id);rows+='<tr'+(p.id===pairId?' style="font-weight:800"':'')+'><td>'+esc(p.name)+'</td><td style="white-space:normal">'+esc(p.f.team)+' / '+esc(p.d.team)+'</td><td class="num r">'+fmt(c.f)+'</td><td class="num r">'+fmt(c.d)+'</td><td class="num r">'+fmt(c.t)+'</td></tr>';}
+  return '<section class="panel"><h3>Class results: '+esc(gameName())+'</h3><div class="scroll"><table class="data"><tr><th>Supply chain</th><th>Teams</th><th class="r">Fabless</th><th class="r">Foundry</th><th class="r">Combined</th></tr>'+rows+'</table></div></section>';
+}
+function teamView(pair,role){
+  if(!G)return waitingView('The instructor has not created a session yet.');
+  const canAct=true;
+  let main;
+  if(G.stage==='debrief'||G.stage==='done'){
+    const ps=curStep(),nvt=G.stage==='debrief'?nextVersionTarget():null,nx=nvt==null?null:plan[nvt];
+    const summ=ps&&ps.practice?'<p>The practice round is complete. It did not count toward your score.</p><div class="why"><b>Before scoring starts</b>Check that you know what your company decides at each step, which numbers you can see, and how your profit is calculated.</div>':(ps?versionSummary(role,pair.id,ps.ver):'');
+    main='<section class="panel"><div class="roleband '+role+'"><span class="disp">'+(role==='f'?'Fabless':'Foundry')+'</span></div><h2>'+(G.stage==='done'?'Game complete':'Version complete: discussion time')+'</h2><p class="muted">'+(G.stage==='done'?'Thanks for playing. Your results are below.':'Your instructor will lead a debrief before the next version begins.')+'</p>'+summ+(ps&&!ps.practice?'<p>Total in this game: <b class="num">'+fmt(role==='f'?gameTotal(pair.id).f:gameTotal(pair.id).d)+'</b></p>':'')+'</section>';
+    return '<div class="grid2"><div class="col">'+main+classResults(pair.id)+historyCard(role,pair.id)+'</div><div class="col">'+infoSheet(role)+notesCard()+'</div></div>';
+  }
+  const step=curStep();
+  if(!step){
+    main='<section class="panel"><div class="roleband '+role+'"><span class="disp">'+(role==='f'?'Fabless':'Foundry')+'</span></div><h2>Waiting to start</h2><p class="muted">The instructor will open the practice round. Read through what your company knows while you wait.</p></section>';
+    return '<div class="grid2"><div class="col">'+main+'</div><div class="col">'+infoSheet(role)+notesCard()+'</div></div>';
+  }
+  return '<div class="grid2"><div class="col">'+decisionCard(role,pair.id,canAct)+'<div id="whatwrap">'+whatIf(role,pair.id)+'</div>'+classResults(pair.id)+historyCard(role,pair.id)+'</div>'+
+    '<div class="col">'+visPanels(role,pair.id)+infoSheet(role)+notesCard()+'</div></div>';
+}
+
+/* ---------- instructor console ---------- */
+const BENCH={private:{ind:[17400,7150,24550]},public:{ind:[19200,7600,26800],eff:[22272,7088,29360]},fee:{eff:[22272,7088,29360],ind:[19200,7600,26800]},min:{ind:[19200,7600,26800],eff:[22272,7088,29360]}};
+function consoleView(){
+  if(!G)return setupView();
+  const step=curStep(),st=G.stage,s=stageStatus();
+  const ju=standalone&&NS?joinUrl(NS):null;
+  const classBox=standalone&&NS?'<div class="classbox"><div><span class="small muted">Class code</span><div class="code num">'+esc(NS)+'</div></div><div class="small">'+(ju?'Students join at <b>'+esc(ju)+'</b>':'Students open this game and enter the code.')+'<br><span class="muted">'+(Store.online?'Online: students can join from their own devices.':'Browser-only mode: teams must use this browser, one tab each.')+'</span></div><button class="btn sm ghost" data-act="copycode">Copy '+(ju?'join link':'code')+'</button></div>':'';
+  let status=classBox+'<h2>'+(step?esc(VERS[step.ver].name+' · '+VERS[step.ver].sub+' · '+stepLabel(step)):'Lobby')+'</h2>';
+  const stageName={lobby:'Lobby',ready:'Round queued',request:'Fabless requests open',allocate:'Foundry allocations open',propose:'Fabless proposals open',respond:'Negotiation open',locked:'Decisions locked',settled:'Round settled',debrief:'Debrief',done:'Complete'}[st];
+  status+='<p class="counter"><b>'+stageName+'</b>'+(s.total?' · <span class="num">'+s.done+' of '+s.total+'</span> submitted'+(s.pending.length?' · waiting on supply chain '+s.pending.join(', '):''):'')+'</p>';
+  if(step&&curSig()!=null&&st!=='ready')status+='<p class="small muted">Signal this round: '+sgn(curSig())+' (shown to '+(VERS[step.ver].pub?'both teams':'the fabless only')+').</p>';
+  const adv=advLabel();
+  const curV=step?step.ver:null,curI=curV?VORDER.indexOf(curV):-1;
+  const played=v=>plan.filter((s,i)=>s.ver===v&&!s.practice&&RV[i]).length,total=v=>plan.filter(s=>s.ver===v&&!s.practice).length;
+  const strip='<div class="vswitch" role="group" aria-label="Switch version"><span class="vs-lab">Switch version any time</span><div class="vs-row">'+VORDER.map((v,i)=>{const on=step&&!step.practice&&step.ver===v;
+    return '<button class="vs'+(on?' on':'')+'" data-act="switchver" data-v="'+v+'" aria-pressed="'+on+'"><span class="vs-i">'+(i+1)+'</span><span class="vs-t"><b>'+esc(VERS[v].name)+'</b><small>'+esc(VERS[v].sub)+'</small></span><span class="vs-c num">'+played(v)+'/'+total(v)+'</span></button>';}).join('')+'</div></div>';
+  const jump='';
+  const sd=scen&&scen.sid===G.sid?scen:null;
+  const seedB='<div class="row" style="margin:6px 0 12px"><span class="seedbox">Random seed <code id="seedval">'+(sd&&sd.seed?esc(sd.seed):'not recorded')+'</code>'+(sd&&sd.repeat?'<span class="pill">same sequence each version</span>':'')+
+    (sd&&sd.seed?'<button class="btn sm ghost" data-act="copyseed">Copy</button><button class="btn sm ghost" data-act="replay">Replay this seed</button>':'')+'</span></div>';
+  const moreBtn=st==='debrief'&&step&&!step.practice?'<button class="btn" data-act="more">Play another round of this version</button>':'';
+  let ctl=strip+seedB+'<div class="row">'+moreBtn+(adv?'<button class="btn'+(st==='debrief'?' ghost':'')+'" data-act="adv">'+adv+'</button>':'')+(st==='debrief'?'<span class="small muted">The version changes only when you choose to move on.</span>':'')+''+(['ready','request','allocate','propose','respond','locked'].includes(st)?'<span class="small muted">Demand stays hidden until you reveal it.</span>':'')+'</div>';
+  ctl+='<div class="toggles"><label>Timer (sec) <input type="number" id="c-timer" min="0" max="900" value="'+G.timerSec+'"></label>'+
+    '<label><input type="checkbox" id="c-auto" '+(G.auto?'checked':'')+'> Auto-advance when all submit or time runs out</label>'+
+    '<label><input type="checkbox" id="c-calc" '+(G.calc?'checked':'')+'> Show what-if estimates to teams</label>'+
+    '<label><input type="checkbox" id="c-rp" '+(G.release.profits?'checked':'')+'> Release cross-company profits</label>'+
+    '<label><input type="checkbox" id="c-rq" '+(G.release.params?'checked':'')+'> Release economic parameters</label>'+
+    '<label><input type="checkbox" id="c-ins" '+(G.insights?'checked':'')+'> Show benchmark comparisons in team explanations</label>'+
+    '<label><input type="checkbox" id="c-bots" '+(G.bots!==false?'checked':'')+'> Demo teams decide automatically</label>'+
+    '<label>Offers per negotiation <select id="c-neg">'+[[3,'3: offer, counter, counter'],[2,'2: offer, counter'],[1,'1: accept or reject only']].map(o=>'<option value="'+o[0]+'"'+(NEGMAX()===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></label></div>'+
+    '<p class="small muted" style="margin:6px 0 0">Changes apply immediately on every team’s screen. A new timer value takes effect from the next decision stage.</p>'+jump;
+  let pr='';
+  for(const p of pairs){
+    const mv=mvOf(G.pos,p.id),res=RV[G.pos]&&G.pos>=0?resultFor(G.pos,p.id):null;
+    const seat=(r)=>{const o=p[r];return o?esc(o.team)+' <button class="btn sm ghost" data-act="clear" data-pair="'+p.id+'" data-role="'+r+'" aria-label="Clear seat">×</button>':'<span class="muted">empty</span>';};
+    const pillOf=(k,txt)=>mv[k]?'<span class="pill ok">'+txt+'</span>':'<span class="pill wait">–</span>';
+    const offs=offersOf(mv),lo=offs[offs.length-1];
+    const contract=mv.prop?(mv.prop.skip?'<span class="pill">kept</span>':'<span class="pill '+(mv.resp?(mv.resp.accept?'ok':'flag'):'wait')+'">'+lo.K1+' · '+fmt(lo.X)+' · offer '+offs.length+'/'+NEGMAX()+(mv.resp?(mv.resp.accept?' ✓':' ✗'):' …')+'</span>'):'<span class="pill wait">–</span>';
+    pr+='<tr><td><b>'+esc(p.name)+'</b>'+(res&&res.miss.length?'<div><span class="pill flag">missing: '+res.miss.join(', ')+'</span></div>':'')+'<div class="row" style="gap:5px;margin-top:5px"><button class="btn sm f" data-act="open" data-pair="'+p.id+'" data-role="f">Fabless</button><button class="btn sm d" data-act="open" data-pair="'+p.id+'" data-role="d">Foundry</button></div></td><td>'+seat('f')+'</td><td>'+seat('d')+'</td><td>'+pillOf('req',mv.req&&mv.req.R)+'</td><td>'+pillOf('alloc',mv.alloc&&mv.alloc.K0)+'</td><td>'+contract+'</td>'+
+      '<td class="num r">'+(res?fmt(res.fProfit):'')+'</td><td class="num r">'+(res?fmt(res.dProfit):'')+'</td></tr>';
+  }
+  const pairsT='<div class="scroll"><table class="data" style="white-space:normal"><tr><th>Supply chain</th><th>Fabless team</th><th>Foundry team</th><th>Request</th><th>K0</th><th>Negotiation (K1 · term · offer)</th><th class="r">Fabless profit</th><th class="r">Foundry profit</th></tr>'+pr+'</table></div>'+
+    '<div class="row" style="margin-top:10px"><button class="btn sm ghost" data-act="addchain">Add supply chain</button><button class="btn sm ghost" data-act="demo">Fill empty seats with demo teams</button><button class="btn sm f" data-act="solo">Play a solo demo as Supply chain 1 fabless</button></div>'+
+    '<p class="small muted">Teams are placed automatically: a new team takes the open seat of a supply chain whose partner is waiting, otherwise a new supply chain is created. If a chain is left with one team, fill the other seat with a demo team. Demo teams make reasonable, slightly varied choices, so you can also rehearse alone.</p>';
+  // results for the current game only (earlier games can be exported as CSV)
+  let lb='';let tf=0,td=0,cnt=0,rounds=0;
+  for(const p of activePairs()){const c=gameTotal(p.id);rounds=Math.max(rounds,c.n);tf+=c.f;td+=c.d;cnt++;lb+='<tr><td>'+esc(p.name)+'</td><td class="num r">'+fmt(c.f)+'</td><td class="num r">'+fmt(c.d)+'</td><td class="num r"><b>'+fmt(c.t)+'</b></td><td class="num r">'+(c.n?fmt(c.t/c.n):'–')+'</td></tr>';}
+  if(cnt&&rounds)lb+='<tr><td><i>Class average per round</i></td><td class="num r">'+fmt(tf/cnt/rounds)+'</td><td class="num r">'+fmt(td/cnt/rounds)+'</td><td class="num r">'+fmt((tf+td)/cnt/rounds)+'</td><td></td></tr>';
+  const lbT='<p class="small muted" style="margin-top:0">Only rounds of the game being played. Export results (CSV) keeps every round.</p><div class="scroll"><table class="data"><tr><th>Supply chain</th><th class="r">Fabless</th><th class="r">Foundry</th><th class="r">Combined</th><th class="r">Combined per round</th></tr>'+(lb||'<tr><td colspan="5" class="muted">Results appear after the first round of this game.</td></tr>')+'</table></div>';
+  const sched=sd?'<details id="det-scen"'+detOpen('det-scen',false)+' style="margin-top:14px"><summary>Scenario schedule for this seed (instructor only)</summary><div class="scroll"><table class="data"><tr><th>Round</th><th class="r">Signal</th><th class="r">Error</th><th class="r">Demand</th></tr>'+
+    plan.map((s,i)=>{const it=scenAt(i);if(!it)return '';return '<tr'+(i===G.pos?' style="font-weight:800"':'')+'><td>'+esc(s.practice?'Practice':VERS[s.ver].name+' · '+VERS[s.ver].sub+' · R'+s.r)+'</td><td class="num r">'+sgn(it.S)+'</td><td class="num r">'+sgn(it.eps)+'</td><td class="num r">'+Math.max(0,MU+it.S+it.eps)+'</td></tr>';}).join('')+'</table></div></details>':'';
+  const adm='<div class="row"><button class="btn sm ghost" data-act="csv">Export results (CSV)</button><button class="btn sm ghost" data-act="csvs">Export scenarios (CSV)</button><button class="btn sm bad" data-act="newsess">Start a new session</button></div>'+sched;
+  return '<section class="panel">'+status+ctl+'</section>'+consoleGuide()+'<section class="panel"><h2>Supply chains</h2>'+pairsT+'</section>'+
+    '<div class="grid2"><div class="col"><section class="panel"><h2>Results'+(step?': '+esc(gameName()):'')+'</h2>'+lbT+'</section></div><div class="col"><section class="panel"><h2>Export and admin</h2>'+adm+'</section></div></div>';
+}
+function consoleGuide(){
+  const step=curStep(),st=G.stage;
+  if(!step)return '<section class="panel guide"><h2>Version guide</h2><p>The game opens with one unscored practice round under the private-signal rules, then runs the four versions in order: private signal, public signal, reservation fee, minimum purchase. Each version ends with a debrief screen.</p><button class="btn sm ghost" data-act="guide">Compare all four versions</button></section>';
+  if(st==='debrief'||st==='done'){
+    const key=step.practice?'practice':step.ver,nvt=st==='debrief'?nextVersionTarget():null,nx=nvt==null?null:plan[nvt];
+    let h='<section class="panel guide"><h2>Debrief: '+(step.practice?'practice round':esc(GUIDE[step.ver].title))+'</h2>';
+    if(!step.practice){
+      const ap=activePairs();let tf=0,td=0,n=0;for(const p of ap){const c=cumFor(p.id,step.ver);tf+=c.f;td+=c.d;n+=c.n;}
+      const b=BENCH[step.ver];
+      h+='<div class="scroll"><table class="data"><tr><th>Per round</th><th class="r">Fabless</th><th class="r">Foundry</th><th class="r">Combined</th></tr>'+
+        (n?'<tr><td><b>Class average</b></td><td class="num r">'+fmt(tf/n)+'</td><td class="num r">'+fmt(td/n)+'</td><td class="num r">'+fmt((tf+td)/n)+'</td></tr>':'')+
+        (b.ind?'<tr><td>Expected, independent allocation</td><td class="num r">'+fmt(b.ind[0])+'</td><td class="num r">'+fmt(b.ind[1])+'</td><td class="num r">'+fmt(b.ind[2])+'</td></tr>':'')+
+        (b.eff?'<tr><td>Expected, efficient allocation (before payments)</td><td class="num r">'+fmt(b.eff[0])+'</td><td class="num r">'+fmt(b.eff[1])+'</td><td class="num r">'+fmt(b.eff[2])+'</td></tr>':'')+'</table></div>'+
+        '<p class="small muted">Class averages come from a handful of random rounds, so they can differ from expected values by luck alone.</p>';
+      h+='<p><b>Key idea:</b> '+GUIDE[step.ver].lesson+'</p>';
+    }
+    h+='<p style="margin-bottom:0"><b>Discussion questions</b></p><ul class="qs">'+DEBRIEF_Q[key].map(q=>'<li>'+q+'</li>').join('')+'</ul>';
+    if(nx&&step.practice)h+='<p style="margin-top:12px"><b>Next: scoring begins with the '+esc(GUIDE[nx.ver].title.toLowerCase())+'.</b> Same rules as the practice round, and every round now counts.</p>';
+    else if(nx)h+='<p style="margin-top:12px"><b>Next: '+esc(GUIDE[nx.ver].title)+'.</b> '+GUIDE[nx.ver].newv+'</p>';
+    else h+='<p style="margin-top:12px"><b>That was the final version.</b> Turn on “Release cross-company profits” and “Release economic parameters” to discuss the full results.</p>';
+    return h+'</section>';
+  }
+  const g=GUIDE[step.ver];
+  return '<details class="panel guide" id="det-cguide-'+step.ver+'"'+detOpen('det-cguide-'+step.ver,true)+'><summary>Now playing: '+esc(g.title)+'</summary><p><b>'+g.short+'</b> '+g.newv+'</p>'+
+    '<ol class="small">'+g.steps.map(s=>'<li>'+s+'</li>').join('')+'</ol><p class="small"><b>Who pays what:</b> '+g.pay+'</p><p class="small"><b>Key idea for the debrief:</b> '+g.lesson+'</p>'+
+    '<button class="btn sm ghost" data-act="guide">Compare all four versions</button></details>';
+}
+function csvEscape(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function buildCsv(){
+  const head=['seed','position','version','round','supply_chain','fabless_team','foundry_team','signal','error','demand','request_R','allocation_K0','proposed','K1','term','accepted','offers','agreed_on_offer','agreed_by','final_K','fee_F','min_purchase_L','purchased','sold','unmet','excess','unused','fabless_profit','foundry_profit','combined','fabless_fallback','foundry_fallback','missing'];
+  const rows=[head];
+  for(let pos=0;pos<plan.length;pos++){if(!RV[pos])continue;for(const p of pairs){const o=resultFor(pos,p.id),s=plan[pos],r=RV[pos];
+    rows.push([scen&&scen.seed||'',pos,s.ver,s.practice?'practice':s.r,p.name,p.f&&p.f.team,p.d&&p.d.team,r.S,r.eps,r.D,o.R,o.K0,o.proposed,o.K1,o.X,o.acc,o.nOff,o.accOn||'',o.accBy?(o.accBy==='f'?'fabless':'foundry'):'',o.K,o.F,o.L,o.purchased,o.sold,o.unmet,o.excess,o.unused,o.fProfit,o.dProfit,o.fProfit+o.dProfit,o.base.fProfit,o.base.dProfit,o.miss.join('|')]);}}
+  return rows.map(r=>r.map(csvEscape).join(',')).join('\n');
+}
+async function download(name,data){
+  try{const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;
+    if(dl){await dl.save({filename:name,data});return;}}catch(e){if(e&&e.code==='declined')return;}
+  modal(name,'<p class="small muted">Download the file, or select all, copy, and paste into a spreadsheet.</p><textarea style="min-height:220px" readonly onfocus="this.select()">'+esc(data)+'</textarea>',
+    [{label:'Close',cls:'ghost'},{label:'Download file',cls:'',fn:()=>{blobSave(name,data);return false;}}]);
+}
+function blobSave(name,data){
+  try{const u=URL.createObjectURL(new Blob([data],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(u);a.remove();},800);toast('Downloading '+name);}
+  catch(e){toast('Download is blocked here. Copy the text instead.');}
+}
+
+/* ---------- render ---------- */
+function render(){
+  const app=$('#app');if(!app)return;
+  const ae=document.activeElement,fid=ae&&ae.id,fs=ae&&ae.selectionStart,fe=ae&&ae.selectionEnd;
+  if(!ready){app.innerHTML=loadingView();return;}
+  if(connError){app.innerHTML=connErrorView();return;}
+  if(showTitle){app.innerHTML=titleView();return;}
+  if(standalone&&!NS){app.innerHTML=gateView();return;}
+  let ctx=null,html='';
+  if(isInst){
+    if(!pairById(view.pair)&&pairs.length)view.pair=pairs[0].id;
+    if(view.tab==='console')html=topbar(null)+consoleView();
+    else{const p=pairById(view.pair);ctx={pair:p||{name:'–',f:{team:'–'},d:{team:'–'}},role:view.role};
+      const picker='<div class="row" style="margin-bottom:12px"><label for="pp">Viewing as</label><select id="pp">'+pairs.map(x=>'<option value="'+x.id+'"'+(x.id===view.pair?' selected':'')+'>'+esc(x.name)+'</option>').join('')+'</select><div class="seg"><button data-act="role" data-v="f" aria-pressed="'+(view.role==='f')+'">Fabless</button><button data-act="role" data-v="d" aria-pressed="'+(view.role==='d')+'">Foundry</button></div></div>';
+      html=topbar(null)+picker+(p?botBar(p,view.role)+teamView(p,view.role):waitingView('Create a supply chain first.'));}
+  }else{
+    const seat=seatOf(uid);
+    if(!seat&&!mySeat)html=topbar(null)+joinView();
+    else if(!seat)html=topbar(null)+waitingView('Loading your supply chain…');
+    else if(!G)html=seat?topbar(seat)+waitingView('Your team is in: '+(seat.role==='f'?'Fabless':'Foundry')+', '+esc(seat.pair.name)+'. The game starts when your instructor opens it.'):topbar(null)+waitingView('The instructor has not created a session yet. This page will update by itself.');
+    else{ctx=seat;html=topbar(ctx)+teamView(seat.pair,seat.role);}
+  }
+  app.innerHTML=html;
+  if(fid){const el=document.getElementById(fid);if(el){el.focus();try{if(fs!=null)el.setSelectionRange(fs,fe);}catch(e){}}}
+  tickTimer();validate();
+}
+function botBar(pair,role){
+  const s=pair[role];if(!s||s.uid!=='demo')return '';
+  return '<div class="botbar"><span>'+(s.bot?'A demo team plays this seat automatically'+(G&&G.bots===false?' (paused: demo play is switched off in the console)':'')+'.':'You are playing this demo seat yourself.')+'</span><button class="btn sm ghost" data-act="botseat" data-pair="'+pair.id+'" data-role="'+role+'">'+(s.bot?'Play this seat myself':'Let the demo team play')+'</button></div>';
+}
+function curCtx(){
+  if(isInst)return {pairId:view.pair,role:view.role};
+  const s=seatOf(uid);return s?{pairId:s.pair.id,role:s.role}:null;
+}
+function validate(){
+  const go=$('#go');if(!go||!G)return;
+  const c=curCtx();if(!c)return;const mv=mvOf(G.pos,c.pairId),ext=VERS[curStep().ver].ext;let m='';
+  if(G.stage==='request')m=checkReq(draft.R);
+  else if(G.stage==='allocate')m=checkAlloc(draft.K0,mv.req?mv.req.R:0);
+  else if(G.stage==='propose'||G.stage==='respond'){const K0=mv.alloc?mv.alloc.K0:0;m=checkProp(K0,draft.K1,draft.X,ext);const st=$('#stmt');if(st&&!m)st.innerHTML=stmtText(ext,K0,draft.K1,draft.X,G.stage==='respond'?c.role:'f');else if(st)st.innerHTML='';}
+  go.disabled=!!m;const el=$('#msg');if(el){el.textContent=m;el.className='msg'+(m?' err':'');}
+}
+function refreshVis(){
+  const c=curCtx();if(!c||!G)return;const vs=visState(c.role,c.pairId);
+  const wv=$('#vis-wafer');if(wv)wv.innerHTML=waferBlock(vs);const d=$('#vis-demand'),m=$('#vis-map');if(d)d.innerHTML=demandSVG(vs.demand);if(m)m.innerHTML=mapSVG(vs.tiles);
+  const w=$('#whatwrap');if(w)w.innerHTML=whatIf(c.role,c.pairId);
+  validate();
+}
+
+function openNewSession(seedVal,repVal){
+    seedVal=seedVal||'';
+    modal(seedVal?'Replay with seed '+seedVal+'?':'Start a new session?','<p>'+(seedVal?'This restarts the game from the practice round with the same seed, so every round gets the same signal and demand as before. ':'This draws fresh scenarios. ')+'All rounds and results are cleared from view. Seats stay as they are. Export your results first if you need them.</p>'+
+      '<label for="ns-n">Scored rounds per version</label><input type="number" id="ns-n" min="1" max="8" value="'+G.n+'">'+
+      '<label for="ns-t">Decision timer in seconds (0 for none)</label><input type="number" id="ns-t" min="0" max="900" value="'+G.timerSec+'">'+
+      '<label for="ns-seed">Random seed</label><input type="text" id="ns-seed" maxlength="40" value="'+esc(seedVal)+'" placeholder="Leave blank for a new random seed" style="width:260px">'+
+    '<p class="small muted" style="margin:4px 0 0">The same seed and number of rounds always produce the same signals and demand, so you can rerun a session or give two sections identical scenarios.</p>'+
+    '<label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="ns-rep" '+(repVal?'checked':'')+'> Use the same demand sequence in every version</label>'+
+    '<p class="small muted" style="margin:4px 0 0">When checked, round 1 of every version has the same signal and demand, round 2 the same, and so on. Teams can then compare versions directly. Unchecked, every round is an independent draw.</p>',
+      [{label:'Cancel',cls:'ghost'},{label:'Start new session',cls:'bad',fn:async(o)=>{
+        const n=Math.max(1,Math.min(8,Number(o.querySelector('#ns-n').value)||G.n)),t=Math.max(0,Number(o.querySelector('#ns-t').value)||0);
+        const ok=await createSession(n,G.pc,t,o.querySelector('#ns-seed').value,o.querySelector('#ns-rep').checked);if(ok!==false){view.tab='console';draftKey='';autoFired='';toast('New session started.');}}}]);
+}
+/* ---------- events ---------- */
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='notes'){lsSet('fr_notes',t.value);return;}
+  if(t.dataset&&t.dataset.d){
+    const k=t.dataset.d;let v=t.value===''?NaN:Number(t.value);draft[k]=v;
+    document.querySelectorAll('[data-d="'+k+'"]').forEach(el=>{if(el!==t&&!isNaN(v))el.value=Math.min(Number(el.max||1e9),Math.max(Number(el.min||0),v));});
+    if(k==='K1'){const x=document.getElementById('r-X');if(x){x.max=v;const nx=document.getElementById('n-X');if(nx)nx.max=v;if(draft.X>v){draft.X=v;x.value=v;if(nx)nx.value=v;}}}
+    refreshVis();
+  }
+});
+document.addEventListener('keydown',e=>{if(e.key!=='Enter'||!e.target)return;const id=e.target.id;
+  if(id==='teamname'){e.preventDefault();autoJoin(e.target.value);}else if(id==='g-code'){e.preventDefault();enterClass(e.target.value,false);}});
+document.addEventListener('change',async e=>{
+  const t=e.target;
+  if(t.id==='pp'){view.pair=t.value;draftKey='';rq();}
+  else if(t.id==='lbsel'){view.lb=t.value;rq();}
+  else if(t.id==='c-timer')await save('update','game/state',{timerSec:Math.max(0,Math.min(900,Number(t.value)||0))});
+  else if(t.id==='c-auto')await save('update','game/state',{auto:t.checked});
+  else if(t.id==='c-calc')await save('update','game/state',{calc:t.checked});
+  else if(t.id==='c-rp'){await save('update','game/state',{release:{profits:t.checked,params:!!(G.release&&G.release.params)}});setTimeout(publishBoard,300);}
+  else if(t.id==='c-rq')await save('update','game/state',{release:{profits:!!(G.release&&G.release.profits),params:t.checked}});
+  else if(t.id==='c-ins')await save('update','game/state',{insights:t.checked});
+  else if(t.id==='c-bots')await save('update','game/state',{bots:t.checked});
+  else if(t.id==='c-neg')await save('update','game/state',{negMax:Math.max(1,Math.min(3,Number(t.value)||3))});
+  else if(t.id==='teamname')lsSet('fr_team',t.value.trim());
+});
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act,c=curCtx(),sid=G&&G.sid;
+  const mk=(kind,data)=>save('set','pairs/'+c.pairId+'/moves/'+sid+'_'+G.pos+'_'+kind+'_a'+attNow(),Object.assign({sid,pos:G.pos,pair:c.pairId,kind,att:attNow(),ts:Date.now()},data));
+  if(a==='vis'){visMode=b.dataset.v;lsSet('fr_vis',visMode);rq();}
+  else if(a==='tab'){view.tab=b.dataset.v;rq();}
+  else if(a==='role'){view.role=b.dataset.v;draftKey='';rq();}
+  else if(a==='open'){view.tab='team';view.pair=b.dataset.pair;view.role=b.dataset.role;draftKey='';rq();window.scrollTo(0,0);}
+  else if(a==='create'){const n=Math.max(1,Math.min(8,Number($('#s-n').value)||4)),pc=Math.max(0,Math.min(40,Number($('#s-pc').value)||0)),t=Math.max(0,Number($('#s-t').value)||0);await createSession(n,pc,t,$('#s-seed').value,$('#s-rep').checked);}
+  else if(a==='adv'){if(G&&G.stage==='debrief')confirmMoveOn();else await advance();}
+  else if(a==='more')await addRound();
+  else if(a==='autojoin')await autoJoin($('#teamname')&&$('#teamname').value);
+  else if(a==='rejoin'){joinPending=false;try{await Store.del('joins/'+uid);}catch(err){}rq();}
+  else if(a==='g-join')await enterClass($('#g-code').value,false);
+  else if(a==='g-create')await createClass($('#g-pin').value);
+  else if(a==='g-open')await openClass($('#g-icode').value,$('#g-pin').value);
+  else if(a==='leave')leaveClass();
+  else if(a==='retry'){try{sessionStorage.removeItem('fr_local');}catch(err){}location.reload();}
+  else if(a==='uselocal'){try{sessionStorage.setItem('fr_local','1');}catch(err){}location.reload();}
+  else if(a==='copycode'){const v=joinUrl(NS)||NS;try{await navigator.clipboard.writeText(v);toast('Copied: '+v);}catch(err){toast(v);}}
+  else if(a==='join'){const team=($('#teamname').value||'').trim();if(!team){toast('Enter a team name first.');$('#teamname').focus();return;}
+    lsSet('fr_team',team);const r=b.dataset.role;const cur=pairById(b.dataset.pair);if(cur&&cur[r]){toast('That seat was just taken.');return;}
+    const o={};o[r]={uid,team};await save('update','pairs/'+b.dataset.pair,o);}
+  else if(a==='clear')await clearSeat(b.dataset.pair,b.dataset.role);
+  else if(a==='addpair-old'){const n=pairs.length+1;await save('set','pairs/p'+n,{n,name:'Supply chain '+n,f:null,d:null});}
+  else if(a==='demo'){if(!pairs.length){await save('set','pairs/p1',{n:1,name:'Supply chain 1',f:null,d:null,createdAt:Date.now()});await sleep(250);}const A=['Aurora Silicon','Meridian Fab','Nova Logic','Helix Foundry','Quartz Labs','Tidal Fab','Cobalt Design','Ember Wafer','Lumen Chips','Basalt Foundry','Vertex Labs','Opal Fab'];let i=0;
+    for(const p of pairs){if(!p.f)await save('update','pairs/'+p.id,{f:{uid:'demo',team:A[(i*2)%12]+' (demo)',bot:true}});if(!p.d)await save('update','pairs/'+p.id,{d:{uid:'demo',team:A[(i*2+1)%12]+' (demo)',bot:true}});i++;}}
+  else if(a==='addchain'){const n=pairs.reduce((m,x)=>Math.max(m,x.n||0),0)+1;await save('set','pairs/p'+n,{n,name:'Supply chain '+n,f:null,d:null,createdAt:Date.now()});}
+  else if(a==='solo')await soloDemo();
+  else if(a==='botseat'){const p=pairById(b.dataset.pair),r=b.dataset.role;if(p&&p[r]){const o={};o[r]=Object.assign({},p[r],{bot:!p[r].bot});await save('update','pairs/'+p.id,o);}}
+  else if(a==='guide')openGuide();
+  else if(a==='explain'){const c2=curCtx(),pos=Number(b.dataset.pos);if(c2&&RV[pos]){const s=plan[pos];modal((s.practice?'Practice round':VERS[s.ver].name+' · '+VERS[s.ver].sub+' · round '+s.r)+': what happened and why',explainHTML(c2.role,c2.pairId,pos),[{label:'Close',cls:''}],true);}}
+  else if(a==='copyseed'){const v=scen&&scen.seed;try{await navigator.clipboard.writeText(v);toast('Seed '+v+' copied.');}catch(err){toast('Seed: '+v);}}
+  else if(a==='replay'){if(scen&&scen.seed)openNewSession(scen.seed,scen.repeat);}
+  else if(a==='sub-req')await mk('req',{R:draft.R});
+  else if(a==='sub-alloc')await mk('alloc',{K0:draft.K0});
+  else if(a==='sub-prop')await mk('prop',{K1:draft.K1,X:draft.X,skip:false});
+  else if(a==='sub-skip')await mk('prop',{K1:null,X:0,skip:true});
+  else if(a==='sub-resp'){const mv=mvOf(G.pos,c.pairId),t=negTurn(mv);if(!t||t!==c.role){toast('It is the other company’s turn.');return;}await mk('resp',{accept:b.dataset.v==='1',by:c.role,on:offersOf(mv).length});}
+  else if(a==='sub-counter'){const mv=mvOf(G.pos,c.pairId),n=offersOf(mv).length,K0=mv.alloc?mv.alloc.K0:0;
+    if(negTurn(mv)!==c.role){toast('It is the other company’s turn.');return;}
+    if(n>=NEGMAX()){toast('No more counter-offers are allowed. Accept or reject this offer.');return;}
+    if(checkProp(K0,draft.K1,draft.X,VERS[curStep().ver].ext))return;
+    await mk(n===1?'o2':'o3',{K1:draft.K1,X:draft.X,by:c.role});}
+  else if(a==='switchver')openSwitch(b.dataset.v);
+  else if(a==='jump'){const v=$('#jump').value;const idx=plan.findIndex(x=>x.ver===v&&!x.practice);if(idx>0)modal('Jump to this version?','<p>'+esc(VERS[v].name+' · '+VERS[v].sub)+'. Rounds in between are skipped.</p>',[{label:'Cancel',cls:'ghost'},{label:'Jump',cls:'',fn:async()=>{await save('update','game/state',{pos:idx,stage:'ready',curS:null,deadline:null});}}]);}
+  else if(a==='csv')download('fab-rush-results.csv',buildCsv());
+  else if(a==='csvs'){const rows=['seed,position,version,round,signal,error,demand'];if(scen)plan.forEach((s,i)=>{const it=scenAt(i);if(!it)return;rows.push([csvEscape(scen.seed||''),i,s.ver,s.practice?'practice':s.r,it.S,it.eps,Math.max(0,MU+it.S+it.eps)].join(','));});download('fab-rush-scenarios.csv',rows.join('\n'));}
+  else if(a==='newsess')openNewSession();
+  else if(a==='title'){showTitle=true;rq();}
+  else if(a==='title-enter'){showTitle=false;rq();window.scrollTo(0,0);}
+  else if(a==='title-new'){showTitle=false;if(G){view.tab='console';rq();openNewSession();}else rq();window.scrollTo(0,0);}
+});
+init();
+setTimeout(()=>{if(!ready&&!connError){connError={step:'start',code:'timeout',message:'The game did not finish starting.'};ready=true;rq();}},40000);
+</script>
+</body>
+</html>
